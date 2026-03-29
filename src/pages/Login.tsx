@@ -59,6 +59,18 @@ const Login = () => {
     }
   };
 
+  const handleGuestLogin = async () => {
+    setLoading(true);
+    const { error } = await supabase.auth.signInAnonymously();
+    setLoading(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Welcome, Guest!");
+    navigate("/dashboard");
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
       <div className="absolute top-6 right-6">
@@ -97,6 +109,20 @@ const Login = () => {
           className="w-full text-sm text-muted-foreground hover:text-foreground transition"
         >
           {isSignUp ? "Already have an account? Login" : "Don't have an account? Sign Up"}
+        </button>
+
+        <div className="flex items-center gap-3 my-2">
+          <div className="flex-1 h-px bg-border" />
+          <span className="text-xs text-muted-foreground">OR</span>
+          <div className="flex-1 h-px bg-border" />
+        </div>
+
+        <button
+          onClick={handleGuestLogin}
+          disabled={loading}
+          className="w-full h-12 rounded-lg border border-input bg-card text-foreground font-medium text-lg hover:bg-accent transition disabled:opacity-50"
+        >
+          Continue as Guest
         </button>
       </div>
     </div>
