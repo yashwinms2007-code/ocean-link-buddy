@@ -4,6 +4,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LanguageProvider } from "@/contexts/LanguageContext";
+import { AuthProvider } from "@/contexts/AuthContext";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import Splash from "./pages/Splash";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -24,28 +26,30 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <LanguageProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Splash />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/weather" element={<Weather />} />
-            <Route path="/sos" element={<SOS />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/sea-map" element={<SeaMap />} />
-            <Route path="/fish-detection" element={<FishDetection />} />
-            <Route path="/safety" element={<Safety />} />
-            <Route path="/fish-market" element={<FishMarket />} />
-            <Route path="/chatbot" element={<Chatbot />} />
-            <Route path="/notifications" element={<Notifications />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Splash />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/weather" element={<ProtectedRoute><Weather /></ProtectedRoute>} />
+              <Route path="/sos" element={<ProtectedRoute><SOS /></ProtectedRoute>} />
+              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              <Route path="/sea-map" element={<ProtectedRoute><SeaMap /></ProtectedRoute>} />
+              <Route path="/fish-detection" element={<ProtectedRoute><FishDetection /></ProtectedRoute>} />
+              <Route path="/safety" element={<ProtectedRoute><Safety /></ProtectedRoute>} />
+              <Route path="/fish-market" element={<ProtectedRoute><FishMarket /></ProtectedRoute>} />
+              <Route path="/chatbot" element={<ProtectedRoute><Chatbot /></ProtectedRoute>} />
+              <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
     </LanguageProvider>
   </QueryClientProvider>
 );
