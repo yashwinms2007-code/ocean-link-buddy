@@ -42,7 +42,7 @@ const Chatbot = () => {
   };
 
   const startVoice = () => {
-    const SR = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) return;
     const recognition = new SR();
     recognition.lang = "en-US";
