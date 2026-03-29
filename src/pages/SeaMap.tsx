@@ -3,11 +3,10 @@ import { ArrowLeft, Navigation, Locate } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import BottomNav from "@/components/BottomNav";
-import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-// Fix default marker icon issue with bundlers
+// Fix default marker icon
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
@@ -15,14 +14,6 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-const boatIcon = L.divIcon({
-  html: `<div style="background:#2563eb;border:3px solid white;border-radius:50%;width:20px;height:20px;box-shadow:0 2px 8px rgba(0,0,0,0.3);"></div>`,
-  className: "",
-  iconSize: [20, 20],
-  iconAnchor: [10, 10],
-});
-
-// Sample zones along Indian coast
 const zones = {
   safe: [
     { lat: 12.98, lng: 74.78, radius: 800, label: "Safe Zone A" },
@@ -38,20 +29,83 @@ const zones = {
   ],
 };
 
-function RecenterMap({ lat, lng }: { lat: number; lng: number }) {
-  const map = useMap();
-  useEffect(() => {
-    map.setView([lat, lng], map.getZoom());
-  }, [lat, lng, map]);
-  return null;
-}
-
 const SeaMap = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
-  const [position, setPosition] = useState<{ lat: number; lng: number }>({ lat: 12.9716, lng: 74.7869 });
+  const [position, setPosition] = useState({ lat: 12.9716, lng: 74.7869 });
   const [tracking, setTracking] = useState(false);
   const watchIdRef = useRef<number | null>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const markerRef = useRef<L.Marker | null>(null);
+
+  // Initialize map with vanilla Leaflet
+  useEffect(() => {
+    if (!mapContainerRef.current || mapRef.current) return;
+
+    const map = L.map(mapContainerRef.current, {
+      center: [position.lat, position.lng],
+      zoom: 14,
+      zoomControl: false,
+    });
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
+    }).addTo(map);
+
+    // Boat marker
+    const boatIcon = L.divIcon({
+      html: `<div style="background:#2563eb;border:3px solid white;border-radius:50%;width:20px;height:20px;box-shadow:0 2px 8px rgba(0,0,0,0.3);"></div>`,
+      className: "",
+      iconSize: [20, 20],
+      iconAnchor: [10, 10],
+    });
+
+    markerRef.current = L.marker([position.lat, position.lng], { icon: boatIcon })
+      .addTo(map)
+      .bindPopup(t("yourBoat") || "Your Boat");
+
+    // Safe zones
+    zones.safe.forEach((z) => {
+      L.circle([z.lat, z.lng], { radius: z.radius, color: "#22c55e", fillColor: "#22c55e", fillOpacity: 0.15, weight: 2 })
+        .addTo(map)
+        .bindPopup(z.label);
+    });
+
+    // Danger zones
+    zones.danger.forEach((z) => {
+      L.circle([z.lat, z.lng], { radius: z.radius, color: "#ef4444", fillColor: "#ef4444", fillOpacity: 0.15, weight: 2 })
+        .addTo(map)
+        .bindPopup(z.label);
+    });
+
+    // Fish zones
+    zones.fish.forEach((z) => {
+      L.circle([z.lat, z.lng], { radius: z.radius, color: "#3b82f6", fillColor: "#3b82f6", fillOpacity: 0.15, weight: 2 })
+        .addTo(map)
+        .bindPopup(z.label);
+    });
+
+    mapRef.current = map;
+
+    // Force resize after mount
+    setTimeout(() => map.invalidateSize(), 100);
+
+    return () => {
+      map.remove();
+      mapRef.current = null;
+    };
+  }, []);
+
+  // Update marker position
+  useEffect(() => {
+    if (markerRef.current) {
+      markerRef.current.setLatLng([position.lat, position.lng]);
+    }
+    if (tracking && mapRef.current) {
+      mapRef.current.setView([position.lat, position.lng]);
+    }
+  }, [position, tracking]);
 
   const startTracking = () => {
     if (!navigator.geolocation) return;
@@ -95,51 +149,11 @@ const SeaMap = () => {
         </div>
       </div>
 
-      {/* Map */}
+      {/* Map - vanilla Leaflet */}
       <div className="mx-5 rounded-2xl overflow-hidden border border-border flex-1 min-h-[350px] relative" style={{ height: "calc(100vh - 280px)" }}>
-        <MapContainer
-          center={[position.lat, position.lng]}
-          zoom={14}
-          style={{ height: "100%", width: "100%" }}
-          zoomControl={false}
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          {tracking && <RecenterMap lat={position.lat} lng={position.lng} />}
+        <div ref={mapContainerRef} style={{ height: "100%", width: "100%" }} />
 
-          {/* Boat marker */}
-          <Marker position={[position.lat, position.lng]} icon={boatIcon}>
-            <Popup>{t("yourBoat")}</Popup>
-          </Marker>
-
-          {/* Safe zones */}
-          {zones.safe.map((z, i) => (
-            <Circle key={`safe-${i}`} center={[z.lat, z.lng]} radius={z.radius}
-              pathOptions={{ color: "#22c55e", fillColor: "#22c55e", fillOpacity: 0.15, weight: 2 }}>
-              <Popup>{z.label}</Popup>
-            </Circle>
-          ))}
-
-          {/* Danger zones */}
-          {zones.danger.map((z, i) => (
-            <Circle key={`danger-${i}`} center={[z.lat, z.lng]} radius={z.radius}
-              pathOptions={{ color: "#ef4444", fillColor: "#ef4444", fillOpacity: 0.15, weight: 2 }}>
-              <Popup>{z.label}</Popup>
-            </Circle>
-          ))}
-
-          {/* Fish zones */}
-          {zones.fish.map((z, i) => (
-            <Circle key={`fish-${i}`} center={[z.lat, z.lng]} radius={z.radius}
-              pathOptions={{ color: "#3b82f6", fillColor: "#3b82f6", fillOpacity: 0.15, weight: 2 }}>
-              <Popup>{z.label}</Popup>
-            </Circle>
-          ))}
-        </MapContainer>
-
-        {/* Legend overlay */}
+        {/* Legend */}
         <div className="absolute top-3 right-3 z-[1000] bg-background/90 backdrop-blur rounded-xl p-2.5 space-y-1.5 border border-border">
           <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
             <div className="w-3 h-3 rounded-full bg-[#22c55e]" /> {t("safeZone")}
@@ -155,7 +169,7 @@ const SeaMap = () => {
 
       {/* Coordinates */}
       <div className="px-5 mt-4">
-        <div className="glass-card rounded-2xl p-4 flex justify-between items-center">
+        <div className="bg-card rounded-2xl p-4 flex justify-between items-center border border-border">
           <div>
             <p className="text-xs text-muted-foreground">{t("latitude")}</p>
             <p className="font-bold text-foreground">{position.lat.toFixed(4)}° N</p>
