@@ -11,73 +11,52 @@ const Login = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const { session } = useAuth();
-  const [phone, setPhone] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
-  const [otp, setOtp] = useState("");
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Redirect if already logged in
   if (session) {
     navigate("/dashboard", { replace: true });
     return null;
   }
 
-  const formatPhone = (input: string): string => {
-    let cleaned = input.replace(/[^\d+]/g, "");
-    if (!cleaned.startsWith("+")) {
-      cleaned = "+91" + cleaned;
+  const handleSubmit = async () => {
+    if (!email || !password) {
+      toast.error("Please fill in all fields");
+      return;
     }
-    return cleaned;
-  };
-
-  const handleSendOtp = async () => {
-    if (phone.length < 10) {
-      toast.error("Please enter a valid phone number");
+    if (password.length < 6) {
+      toast.error("Password must be at least 6 characters");
       return;
     }
 
     setLoading(true);
-    const formattedPhone = formatPhone(phone);
 
-    const { error } = await supabase.auth.signInWithOtp({
-      phone: formattedPhone,
-    });
-
-    setLoading(false);
-
-    if (error) {
-      toast.error(error.message || "Failed to send OTP");
-      return;
+    if (isSignUp) {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+      setLoading(false);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      toast.success("Account created! Please check your email to verify.");
+    } else {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      setLoading(false);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      toast.success("Login successful!");
+      navigate("/dashboard");
     }
-
-    toast.success("OTP sent successfully!");
-    setOtpSent(true);
-  };
-
-  const handleVerify = async () => {
-    if (otp.length < 6) {
-      toast.error("Please enter the 6-digit OTP");
-      return;
-    }
-
-    setLoading(true);
-    const formattedPhone = formatPhone(phone);
-
-    const { error } = await supabase.auth.verifyOtp({
-      phone: formattedPhone,
-      token: otp,
-      type: "sms",
-    });
-
-    setLoading(false);
-
-    if (error) {
-      toast.error(error.message || "Invalid OTP");
-      return;
-    }
-
-    toast.success("Login successful!");
-    navigate("/dashboard");
   };
 
   return (
@@ -90,50 +69,35 @@ const Login = () => {
       <p className="text-muted-foreground text-sm mb-8">{t("tagline")}</p>
 
       <div className="w-full max-w-sm space-y-4">
-        {!otpSent ? (
-          <>
-            <label className="text-sm font-medium text-foreground">{t("phoneNumber")}</label>
-            <input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="+91 9876543210"
-              className="w-full h-12 px-4 rounded-lg border border-input bg-card text-foreground text-lg focus:ring-2 focus:ring-primary outline-none"
-            />
-            <button
-              onClick={handleSendOtp}
-              disabled={loading}
-              className="w-full h-12 rounded-lg bg-primary text-primary-foreground font-semibold text-lg shadow-lg hover:opacity-90 transition disabled:opacity-50"
-            >
-              {loading ? "Sending..." : t("sendOtp")}
-            </button>
-          </>
-        ) : (
-          <>
-            <label className="text-sm font-medium text-foreground">{t("enterOtp")}</label>
-            <input
-              type="text"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-              placeholder="••••••"
-              maxLength={6}
-              className="w-full h-12 px-4 rounded-lg border border-input bg-card text-foreground text-2xl text-center tracking-[0.5em] focus:ring-2 focus:ring-primary outline-none"
-            />
-            <button
-              onClick={handleVerify}
-              disabled={loading}
-              className="w-full h-12 rounded-lg bg-primary text-primary-foreground font-semibold text-lg shadow-lg hover:opacity-90 transition disabled:opacity-50"
-            >
-              {loading ? "Verifying..." : t("verifyOtp")}
-            </button>
-            <button
-              onClick={() => { setOtpSent(false); setOtp(""); }}
-              className="w-full text-sm text-muted-foreground hover:text-foreground transition"
-            >
-              ← Change phone number
-            </button>
-          </>
-        )}
+        <label className="text-sm font-medium text-foreground">Email</label>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@example.com"
+          className="w-full h-12 px-4 rounded-lg border border-input bg-card text-foreground text-lg focus:ring-2 focus:ring-primary outline-none"
+        />
+        <label className="text-sm font-medium text-foreground">Password</label>
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="••••••••"
+          className="w-full h-12 px-4 rounded-lg border border-input bg-card text-foreground text-lg focus:ring-2 focus:ring-primary outline-none"
+        />
+        <button
+          onClick={handleSubmit}
+          disabled={loading}
+          className="w-full h-12 rounded-lg bg-primary text-primary-foreground font-semibold text-lg shadow-lg hover:opacity-90 transition disabled:opacity-50"
+        >
+          {loading ? "Please wait..." : isSignUp ? "Sign Up" : "Login"}
+        </button>
+        <button
+          onClick={() => setIsSignUp(!isSignUp)}
+          className="w-full text-sm text-muted-foreground hover:text-foreground transition"
+        >
+          {isSignUp ? "Already have an account? Login" : "Don't have an account? Sign Up"}
+        </button>
       </div>
     </div>
   );
