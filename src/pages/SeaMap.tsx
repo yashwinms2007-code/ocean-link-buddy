@@ -96,11 +96,11 @@ const SeaMap = () => {
       </div>
 
       {/* Map */}
-      <div className="mx-5 rounded-2xl overflow-hidden border border-border flex-1 min-h-[350px] relative">
+      <div className="mx-5 rounded-2xl overflow-hidden border border-border flex-1 min-h-[350px] relative" style={{ height: "calc(100vh - 280px)" }}>
         <MapContainer
           center={[position.lat, position.lng]}
           zoom={14}
-          className="h-full w-full min-h-[350px]"
+          style={{ height: "100%", width: "100%" }}
           zoomControl={false}
         >
           <TileLayer
