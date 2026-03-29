@@ -1,22 +1,83 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAuth } from "@/contexts/AuthContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import mitraLogo from "@/assets/mitra-logo.png";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const Login = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const { session } = useAuth();
   const [phone, setPhone] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSendOtp = () => {
-    if (phone.length >= 10) setOtpSent(true);
+  // Redirect if already logged in
+  if (session) {
+    navigate("/dashboard", { replace: true });
+    return null;
+  }
+
+  const formatPhone = (input: string): string => {
+    let cleaned = input.replace(/[^\d+]/g, "");
+    if (!cleaned.startsWith("+")) {
+      cleaned = "+91" + cleaned;
+    }
+    return cleaned;
   };
 
-  const handleVerify = () => {
-    if (otp.length >= 4) navigate("/dashboard");
+  const handleSendOtp = async () => {
+    if (phone.length < 10) {
+      toast.error("Please enter a valid phone number");
+      return;
+    }
+
+    setLoading(true);
+    const formattedPhone = formatPhone(phone);
+
+    const { error } = await supabase.auth.signInWithOtp({
+      phone: formattedPhone,
+    });
+
+    setLoading(false);
+
+    if (error) {
+      toast.error(error.message || "Failed to send OTP");
+      return;
+    }
+
+    toast.success("OTP sent successfully!");
+    setOtpSent(true);
+  };
+
+  const handleVerify = async () => {
+    if (otp.length < 6) {
+      toast.error("Please enter the 6-digit OTP");
+      return;
+    }
+
+    setLoading(true);
+    const formattedPhone = formatPhone(phone);
+
+    const { error } = await supabase.auth.verifyOtp({
+      phone: formattedPhone,
+      token: otp,
+      type: "sms",
+    });
+
+    setLoading(false);
+
+    if (error) {
+      toast.error(error.message || "Invalid OTP");
+      return;
+    }
+
+    toast.success("Login successful!");
+    navigate("/dashboard");
   };
 
   return (
@@ -41,9 +102,10 @@ const Login = () => {
             />
             <button
               onClick={handleSendOtp}
-              className="w-full h-12 rounded-lg bg-primary text-primary-foreground font-semibold text-lg shadow-lg hover:opacity-90 transition"
+              disabled={loading}
+              className="w-full h-12 rounded-lg bg-primary text-primary-foreground font-semibold text-lg shadow-lg hover:opacity-90 transition disabled:opacity-50"
             >
-              {t("sendOtp")}
+              {loading ? "Sending..." : t("sendOtp")}
             </button>
           </>
         ) : (
@@ -53,15 +115,22 @@ const Login = () => {
               type="text"
               value={otp}
               onChange={(e) => setOtp(e.target.value)}
-              placeholder="••••"
+              placeholder="••••••"
               maxLength={6}
               className="w-full h-12 px-4 rounded-lg border border-input bg-card text-foreground text-2xl text-center tracking-[0.5em] focus:ring-2 focus:ring-primary outline-none"
             />
             <button
               onClick={handleVerify}
-              className="w-full h-12 rounded-lg bg-primary text-primary-foreground font-semibold text-lg shadow-lg hover:opacity-90 transition"
+              disabled={loading}
+              className="w-full h-12 rounded-lg bg-primary text-primary-foreground font-semibold text-lg shadow-lg hover:opacity-90 transition disabled:opacity-50"
             >
-              {t("verifyOtp")}
+              {loading ? "Verifying..." : t("verifyOtp")}
+            </button>
+            <button
+              onClick={() => { setOtpSent(false); setOtp(""); }}
+              className="w-full text-sm text-muted-foreground hover:text-foreground transition"
+            >
+              ← Change phone number
             </button>
           </>
         )}
