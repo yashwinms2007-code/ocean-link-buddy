@@ -1,7 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useAuth } from "@/contexts/AuthContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import mitraLogo from "@/assets/mitra-logo.png";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,16 +9,22 @@ import { toast } from "sonner";
 const Login = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
-  const { session } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  if (session) {
-    navigate("/dashboard", { replace: true });
-    return null;
-  }
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) navigate("/dashboard", { replace: true });
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) navigate("/dashboard", { replace: true });
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   const handleSubmit = async () => {
     if (!email || !password) {
@@ -34,10 +39,7 @@ const Login = () => {
     setLoading(true);
 
     if (isSignUp) {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
+      const { error } = await supabase.auth.signUp({ email, password });
       setLoading(false);
       if (error) {
         toast.error(error.message);
@@ -45,10 +47,7 @@ const Login = () => {
       }
       toast.success("Account created! Please check your email to verify.");
     } else {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
       setLoading(false);
       if (error) {
         toast.error(error.message);
@@ -59,14 +58,7 @@ const Login = () => {
     }
   };
 
-  const handleGuestLogin = async () => {
-    setLoading(true);
-    const { error } = await supabase.auth.signInAnonymously();
-    setLoading(false);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
+  const handleGuestLogin = () => {
     toast.success("Welcome, Guest!");
     navigate("/dashboard");
   };
