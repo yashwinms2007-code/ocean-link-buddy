@@ -16,6 +16,7 @@ import FishMarket from "./pages/FishMarket";
 import Chatbot from "./pages/Chatbot";
 import Notifications from "./pages/Notifications";
 import Settings from "./pages/Settings";
+import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Splash />} />
+            <Route path="/login" element={<Login />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/weather" element={<Weather />} />
             <Route path="/sos" element={<SOS />} />

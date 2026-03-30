@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Thermometer, Wind, Waves, CloudRain, Volume2, RefreshCw } from "lucide-react";
+import { ArrowLeft, Volume2, RefreshCw, Droplets } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import BottomNav from "@/components/BottomNav";
@@ -23,6 +23,22 @@ interface WeatherData {
   updatedAt: string;
 }
 
+const conditionEmoji: Record<string, string> = {
+  Clear: "☀️",
+  "Partly Cloudy": "⛅",
+  Cloudy: "☁️",
+  Foggy: "🌫️",
+  Drizzle: "🌦️",
+  Rain: "🌧️",
+  Snow: "❄️",
+};
+
+const riskEmoji: Record<RiskLevel, string> = {
+  safe: "✅",
+  moderate: "⚠️",
+  danger: "🌊⛈️",
+};
+
 const Weather = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
@@ -34,7 +50,6 @@ const Weather = () => {
     setLoading(true);
     setError(null);
     try {
-      // Try to get user location
       let lat = 13.0, lon = 74.8;
       try {
         const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
@@ -50,10 +65,8 @@ const Weather = () => {
 
       if (fnError) throw fnError;
       setWeather(data);
-      // Cache for offline
       localStorage.setItem("lastWeather", JSON.stringify(data));
-    } catch (err: any) {
-      // Try offline cache
+    } catch {
       const cached = localStorage.getItem("lastWeather");
       if (cached) {
         setWeather(JSON.parse(cached));
@@ -73,24 +86,52 @@ const Weather = () => {
   const risk = weather?.risk ?? "safe";
 
   const riskConfig: Record<RiskLevel, { label: string; bg: string; text: string }> = {
-    safe: { label: t("safe"), bg: "bg-safe", text: "text-safe-foreground" },
-    moderate: { label: t("moderate"), bg: "bg-warning", text: "text-warning-foreground" },
-    danger: { label: t("dangerous"), bg: "bg-danger", text: "text-danger-foreground" },
+    safe: { label: "Safe to Go", bg: "bg-safe", text: "text-safe-foreground" },
+    moderate: { label: "Be Careful", bg: "bg-warning", text: "text-warning-foreground" },
+    danger: { label: "DANGER - Stay Ashore!", bg: "bg-danger", text: "text-danger-foreground" },
   };
 
   const speak = (text: string) => {
+    speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.85;
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
+    // Try to pick a clear English voice
+    const voices = speechSynthesis.getVoices();
+    const preferred = voices.find(v => v.lang.startsWith("en") && v.name.includes("Google")) 
+      || voices.find(v => v.lang.startsWith("en"));
+    if (preferred) utterance.voice = preferred;
     speechSynthesis.speak(utterance);
   };
 
+  const buildSpeechText = () => {
+    if (!weather) return "";
+    const parts = [
+      `Weather condition: ${weather.condition}.`,
+      `Temperature: ${weather.temperature}.`,
+      `Wind speed: ${weather.windSpeed}.`,
+      `Wave height: ${weather.waveHeight}.`,
+      `Sea status: ${riskConfig[risk].label}.`,
+    ];
+    const hasFlood = weather.alerts.some(a => a.label.toLowerCase().includes("flood"));
+    if (hasFlood) parts.push("Warning! Flood risk detected. Stay away from low-lying areas.");
+    return parts.join(" ");
+  };
+
   const rc = riskConfig[risk];
+  const emoji = conditionEmoji[weather?.condition ?? "Clear"] ?? "🌤️";
+
+  // Flood indicator
+  const floodAlert = weather?.alerts.find(a => a.label.toLowerCase().includes("flood"));
+  const precipValue = weather ? parseFloat(weather.windSpeed) : 0; // we'll compute from alerts
 
   const stats = weather
     ? [
-        { icon: Thermometer, label: t("temperature"), value: weather.temperature },
-        { icon: Wind, label: t("windSpeed"), value: weather.windSpeed },
-        { icon: Waves, label: t("waveHeight"), value: weather.waveHeight },
-        { icon: CloudRain, label: t("seaCondition"), value: weather.condition },
+        { emoji: "🌡️", label: "Temperature", value: weather.temperature },
+        { emoji: "💨", label: "Wind", value: weather.windSpeed },
+        { emoji: "🌊", label: "Waves", value: weather.waveHeight },
+        { emoji, label: "Condition", value: weather.condition },
       ]
     : [];
 
@@ -109,38 +150,37 @@ const Weather = () => {
       </div>
 
       <div className="px-5 -mt-6 space-y-4">
-        {/* Error banner */}
         {error && (
           <div className="bg-warning/20 text-warning-foreground rounded-xl p-3 text-sm text-center font-medium">
             {error}
           </div>
         )}
 
-        {/* Risk indicator */}
+        {/* Main condition card */}
         {loading ? (
-          <Skeleton className="h-32 rounded-2xl" />
+          <Skeleton className="h-40 rounded-2xl" />
         ) : (
           <div className={`${rc.bg} ${rc.text} rounded-2xl p-6 text-center shadow-lg`}>
-            <p className="text-sm font-medium opacity-80 uppercase tracking-wider mb-1">{t("seaCondition")}</p>
+            <p className="text-5xl mb-2">{riskEmoji[risk]}</p>
+            <p className="text-sm font-medium opacity-80 uppercase tracking-wider mb-1">Sea Condition</p>
             <p className="text-3xl font-extrabold">{rc.label}</p>
+            <p className="text-lg mt-1">{emoji} {weather?.condition}</p>
             <button
-              onClick={() => speak(risk === "safe" ? t("safeToGo") : t("dangerousConditions"))}
-              className="mt-3 px-4 py-2 rounded-full bg-card/20 inline-flex items-center gap-2 text-sm font-semibold"
+              onClick={() => speak(buildSpeechText())}
+              className="mt-3 px-5 py-2.5 rounded-full bg-card/20 inline-flex items-center gap-2 text-sm font-semibold"
             >
-              <Volume2 size={16} /> 🎙️
+              <Volume2 size={18} /> Listen 🔊
             </button>
           </div>
         )}
 
-        {/* Stats */}
+        {/* Stats grid with emojis */}
         <div className="grid grid-cols-2 gap-3">
           {loading
             ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-2xl" />)
-            : stats.map(({ icon: Icon, label, value }) => (
+            : stats.map(({ emoji: e, label, value }) => (
                 <div key={label} className="glass-card rounded-2xl p-4 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
-                    <Icon size={20} className="text-secondary-foreground" />
-                  </div>
+                  <span className="text-3xl">{e}</span>
                   <div>
                     <p className="text-xs text-muted-foreground">{label}</p>
                     <p className="text-lg font-bold text-foreground">{value}</p>
@@ -149,26 +189,37 @@ const Weather = () => {
               ))}
         </div>
 
+        {/* Flood Indicator */}
+        {!loading && (
+          <div className={`rounded-2xl p-4 flex items-center gap-4 ${floodAlert ? "bg-danger/20 border-2 border-danger" : "bg-safe/20 border-2 border-safe"}`}>
+            <div className="text-3xl">{floodAlert ? "🌊" : "✅"}</div>
+            <Droplets size={24} className={floodAlert ? "text-danger" : "text-safe"} />
+            <div>
+              <p className="font-bold text-foreground">{floodAlert ? "⚠️ Flood Risk Detected!" : "No Flood Risk"}</p>
+              <p className="text-xs text-muted-foreground">
+                {floodAlert ? "Heavy rainfall may cause flooding. Avoid low-lying areas." : "Water levels are normal. Safe conditions."}
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Alerts */}
         <div className="space-y-2">
-          <h2 className="font-bold text-foreground">⚠️ {t("alerts")}</h2>
+          <h2 className="font-bold text-foreground">⚠️ Alerts</h2>
           {loading ? (
             <Skeleton className="h-12 rounded-xl" />
           ) : (
             weather?.alerts.map(({ label, severity }, i) => (
               <div key={i} className="glass-card rounded-xl p-3 flex items-center gap-3">
-                <div
-                  className={`w-3 h-3 rounded-full ${
-                    severity === "danger" ? "bg-danger" : severity === "warning" ? "bg-warning" : "bg-safe"
-                  }`}
-                />
+                <span className="text-xl">
+                  {severity === "danger" ? "🔴" : severity === "warning" ? "🟡" : "🟢"}
+                </span>
                 <span className="text-sm font-medium text-foreground">{label}</span>
               </div>
             ))
           )}
         </div>
 
-        {/* Last updated */}
         {weather?.updatedAt && (
           <p className="text-xs text-muted-foreground text-center">
             Updated: {new Date(weather.updatedAt).toLocaleTimeString()}
