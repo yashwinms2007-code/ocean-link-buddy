@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Launch Mitra App</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+            color: white;
+            text-align: center;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 3rem;
+            border-radius: 2rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+        }
+        h1 { margin-bottom: 0.5rem; font-size: 2.5rem; }
+        p { opacity: 0.8; margin-bottom: 2rem; }
+        .btn {
+            background: white;
+            color: #0369a1;
+            padding: 1rem 2.5rem;
+            border-radius: 1rem;
+            font-weight: bold;
+            text-decoration: none;
+            font-size: 1.2rem;
+            transition: all 0.2s ease;
+            display: inline-block;
+        }
+        .btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            background: #f0f9ff;
+        }
+    </style>
+    <meta http-equiv="refresh" content="2; url=http://localhost:5173">
+</head>
+<body>
+    <div class="container">
+        <h1>Mitra Launcher</h1>
+        <p>Connecting to the marine safety hub...</p>
+        <a href="http://localhost:5173" class="btn">Open Mitra App</a>
+        <div style="margin-top: 2rem; font-size: 0.8rem; opacity: 0.5;">
+            Redirecting automatically in 2 seconds...
+        </div>
+    </div>
+</body>
+</html>

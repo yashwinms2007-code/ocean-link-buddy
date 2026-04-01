@@ -1,0 +1,106 @@
+﻿
+D:\ocean-link-buddy-main\src\components\GlobalSafetyBarrier.tsx
+  38:6   warning  React Hook useEffect has a missing dependency: 'speakWarning'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  44:20  error    Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+
+D:\ocean-link-buddy-main\src\components\MarineMapBox.tsx
+  113:6  warning  React Hook useEffect has missing dependencies: 'center' and 'zoom'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+D:\ocean-link-buddy-main\src\components\SafetyTutorialCard.tsx
+  16:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  18:54  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\ocean-link-buddy-main\src\components\ui\badge.tsx
+  29:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+D:\ocean-link-buddy-main\src\components\ui\button.tsx
+  47:18  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+D:\ocean-link-buddy-main\src\components\ui\command.tsx
+  24:11  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+D:\ocean-link-buddy-main\src\components\ui\form.tsx
+  129:10  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+D:\ocean-link-buddy-main\src\components\ui\navigation-menu.tsx
+  111:3  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+D:\ocean-link-buddy-main\src\components\ui\sidebar.tsx
+  636:3  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+D:\ocean-link-buddy-main\src\components\ui\sonner.tsx
+  27:19  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+D:\ocean-link-buddy-main\src\components\ui\textarea.tsx
+  5:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+D:\ocean-link-buddy-main\src\components\ui\toggle.tsx
+  37:18  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+D:\ocean-link-buddy-main\src\contexts\AuthContext.tsx
+  19:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+D:\ocean-link-buddy-main\src\contexts\LanguageContext.tsx
+  74:14  warning  Fast refresh only works when a file only exports components. Move your React context(s) to a separate file                      react-refresh/only-export-components
+  96:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+D:\ocean-link-buddy-main\src\pages\Chatbot.tsx
+  22:33  error    Unexpected any. Specify a different type                                                                       @typescript-eslint/no-explicit-any
+  25:42  error    Unexpected any. Specify a different type                                                                       @typescript-eslint/no-explicit-any
+  25:79  error    Unexpected any. Specify a different type                                                                       @typescript-eslint/no-explicit-any
+  33:49  error    Unexpected any. Specify a different type                                                                       @typescript-eslint/no-explicit-any
+  47:6   warning  React Hook useEffect has a missing dependency: 'handleSend'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+D:\ocean-link-buddy-main\src\pages\FishDetection.tsx
+  54:6  warning  React Hook useEffect has missing dependencies: 'coords.lat' and 'coords.lng'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+D:\ocean-link-buddy-main\src\pages\Profile.tsx
+   19:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  210:94  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\ocean-link-buddy-main\src\pages\SOS.tsx
+   27:50  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                            @typescript-eslint/no-explicit-any
+   39:35  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                            @typescript-eslint/no-explicit-any
+   40:35  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                            @typescript-eslint/no-explicit-any
+   42:31  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                            @typescript-eslint/no-explicit-any
+   84:6   warning  React Hook useEffect has missing dependencies: 'coords.lat' and 'coords.lng'. Either include them or remove the dependency array                                                                                                                                                    react-hooks/exhaustive-deps
+  168:6   warning  React Hook useEffect has missing dependencies: 'coords.lat', 'coords.lng', 'isOnline', and 'language'. Either include them or remove the dependency array. You can also replace multiple useState variables with useReducer if 'setChannels' needs the current value of 'isOnline'  react-hooks/exhaustive-deps
+
+D:\ocean-link-buddy-main\src\pages\SeaMap.tsx
+   77:6   warning  React Hook useEffect has missing dependencies: 'coords.lat' and 'coords.lng'. Either include them or remove the dependency array          react-hooks/exhaustive-deps
+   77:7   warning  React Hook useEffect has a complex expression in the dependency array. Extract it to a separate variable so it can be statically checked  react-hooks/exhaustive-deps
+   77:30  warning  React Hook useEffect has a complex expression in the dependency array. Extract it to a separate variable so it can be statically checked  react-hooks/exhaustive-deps
+  157:59  error    Unexpected any. Specify a different type                                                                                                  @typescript-eslint/no-explicit-any
+
+D:\ocean-link-buddy-main\src\pages\Settings.tsx
+  177:76  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\ocean-link-buddy-main\src\pages\Weather.tsx
+   70:6   warning  React Hook useEffect has a missing dependency: 'loadMarineWeather'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  268:81  error    Unexpected any. Specify a different type                                                                              @typescript-eslint/no-explicit-any
+  284:40  error    Unexpected any. Specify a different type                                                                              @typescript-eslint/no-explicit-any
+
+D:\ocean-link-buddy-main\src\services\alertEngine.ts
+  103:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\ocean-link-buddy-main\src\services\marineWeatherService.ts
+  42:7  error  'score' is never reassigned. Use 'const' instead  prefer-const
+
+D:\ocean-link-buddy-main\src\services\notificationStorage.ts
+  10:10  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  17:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\ocean-link-buddy-main\src\services\sosService.ts
+  156:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  156:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\ocean-link-buddy-main\src\utils\notifications.ts
+  44:10  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  48:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\ocean-link-buddy-main\tailwind.config.ts
+  118:13  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+Γ£û 48 problems (28 errors, 20 warnings)
+  1 error and 0 warnings potentially fixable with the `--fix` option.
+
