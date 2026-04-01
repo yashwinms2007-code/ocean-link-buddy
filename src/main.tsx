@@ -3,6 +3,7 @@ import App from "./App.tsx";
 import "./index.css";
 
 createRoot(document.getElementById("root")!).render(<App />);
+<<<<<<< HEAD
 
 // Register Offline Service Worker (PWA Core)
 if ("serviceWorker" in navigator) {
@@ -17,3 +18,5 @@ if ("serviceWorker" in navigator) {
     );
   });
 }
+=======
+>>>>>>> 787debecd21f798eb73c617c68c700a69263cbb5

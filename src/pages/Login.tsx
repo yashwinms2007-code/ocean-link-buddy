@@ -5,7 +5,10 @@ import LanguageSwitcher from "@/components/LanguageSwitcher";
 import mitraLogo from "@/assets/mitra-logo.png";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+<<<<<<< HEAD
 import { Mail, Lock, LogIn, UserPlus, Globe, Ship, ShieldCheck } from "lucide-react";
+=======
+>>>>>>> 787debecd21f798eb73c617c68c700a69263cbb5
 
 const Login = () => {
   const { t } = useLanguage();
@@ -29,11 +32,19 @@ const Login = () => {
 
   const handleSubmit = async () => {
     if (!email || !password) {
+<<<<<<< HEAD
       toast.error(t("fillAllFields"));
       return;
     }
     if (password.length < 6) {
       toast.error(t("passwordLengthError"));
+=======
+      toast.error("Please fill in all fields");
+      return;
+    }
+    if (password.length < 6) {
+      toast.error("Password must be at least 6 characters");
+>>>>>>> 787debecd21f798eb73c617c68c700a69263cbb5
       return;
     }
 
@@ -46,7 +57,11 @@ const Login = () => {
         toast.error(error.message);
         return;
       }
+<<<<<<< HEAD
       toast.success(t("accountCreatedVerify"));
+=======
+      toast.success("Account created! Please check your email to verify.");
+>>>>>>> 787debecd21f798eb73c617c68c700a69263cbb5
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       setLoading(false);
@@ -54,17 +69,26 @@ const Login = () => {
         toast.error(error.message);
         return;
       }
+<<<<<<< HEAD
       toast.success(t("loginSuccess"));
+=======
+      toast.success("Login successful!");
+>>>>>>> 787debecd21f798eb73c617c68c700a69263cbb5
       navigate("/dashboard");
     }
   };
 
   const handleGuestLogin = () => {
+<<<<<<< HEAD
     toast.success(t("guestWelcome"));
+=======
+    toast.success("Welcome, Guest!");
+>>>>>>> 787debecd21f798eb73c617c68c700a69263cbb5
     navigate("/dashboard");
   };
 
   return (
+<<<<<<< HEAD
     <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center px-6 relative overflow-hidden">
       {/* Background Orbs */}
       <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2" />
@@ -157,10 +181,67 @@ const Login = () => {
               <span className="text-[8px] font-black uppercase tracking-[0.5em] text-white">Encrypted Marine Link</span>
            </div>
         </div>
+=======
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
+      <div className="absolute top-6 right-6">
+        <LanguageSwitcher />
+      </div>
+      <img src={mitraLogo} alt="Mitra" width={80} height={80} className="mb-4" />
+      <h1 className="text-2xl font-bold text-foreground mb-1">{t("appName")}</h1>
+      <p className="text-muted-foreground text-sm mb-8">{t("tagline")}</p>
+
+      <div className="w-full max-w-sm space-y-4">
+        <label className="text-sm font-medium text-foreground">Email</label>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@example.com"
+          className="w-full h-12 px-4 rounded-lg border border-input bg-card text-foreground text-lg focus:ring-2 focus:ring-primary outline-none"
+        />
+        <label className="text-sm font-medium text-foreground">Password</label>
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="••••••••"
+          className="w-full h-12 px-4 rounded-lg border border-input bg-card text-foreground text-lg focus:ring-2 focus:ring-primary outline-none"
+        />
+        <button
+          onClick={handleSubmit}
+          disabled={loading}
+          className="w-full h-12 rounded-lg bg-primary text-primary-foreground font-semibold text-lg shadow-lg hover:opacity-90 transition disabled:opacity-50"
+        >
+          {loading ? "Please wait..." : isSignUp ? "Sign Up" : "Login"}
+        </button>
+        <button
+          onClick={() => setIsSignUp(!isSignUp)}
+          className="w-full text-sm text-muted-foreground hover:text-foreground transition"
+        >
+          {isSignUp ? "Already have an account? Login" : "Don't have an account? Sign Up"}
+        </button>
+
+        <div className="flex items-center gap-3 my-2">
+          <div className="flex-1 h-px bg-border" />
+          <span className="text-xs text-muted-foreground">OR</span>
+          <div className="flex-1 h-px bg-border" />
+        </div>
+
+        <button
+          onClick={handleGuestLogin}
+          disabled={loading}
+          className="w-full h-12 rounded-lg border border-input bg-card text-foreground font-medium text-lg hover:bg-accent transition disabled:opacity-50"
+        >
+          Continue as Guest
+        </button>
+>>>>>>> 787debecd21f798eb73c617c68c700a69263cbb5
       </div>
     </div>
   );
 };
 
 export default Login;
+<<<<<<< HEAD
 
+=======
+>>>>>>> 787debecd21f798eb73c617c68c700a69263cbb5

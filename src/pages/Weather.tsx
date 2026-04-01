@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import {
   ArrowLeft, Wind, Waves, Thermometer, Volume2,
   Droplets, CloudRain, Activity, Navigation, Radio,
-  ShieldCheck, TrendingUp, ChevronRight, Zap,
+  ShieldCheck, TrendingUp, ChevronRight,
   ArrowUpRight, ArrowDownRight, Minus, Gauge, RotateCcw
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -17,17 +17,16 @@ const MANGALORE_LNG = 74.8560;
 const Weather = () => {
   const { t, language } = useLanguage();
   const navigate = useNavigate();
-  const [loading, setLoading]       = useState(true);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [marineData, setMarineData] = useState<MarineData | null>(null);
-  const [safety, setSafety]         = useState<SafetyStatus | null>(null);
-  const [forecast, setForecast]     = useState<MarineForecast[]>([]);
-  const [placeName, setPlaceName]   = useState<string>("Locating…");
+  const [safety, setSafety] = useState<SafetyStatus | null>(null);
+  const [forecast, setForecast] = useState<MarineForecast[]>([]);
+  const [placeName, setPlaceName] = useState<string>("Locating…");
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
-  const [secsAgo, setSecsAgo]       = useState(0);
+  const [secsAgo, setSecsAgo] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
 
-  // ── Live "X sec ago" counter ───────────────────────────────────────────────
   useEffect(() => {
     const tick = setInterval(() => {
       setSecsAgo(Math.round((Date.now() - lastUpdated.getTime()) / 1000));
@@ -81,7 +80,6 @@ const Weather = () => {
 
   useEffect(() => {
     loadMarineWeather();
-    // 5-min auto polling (more responsive than 10 min)
     intervalRef.current = setInterval(() => loadMarineWeather(true), 300000);
     return () => clearInterval(intervalRef.current);
   }, []);
@@ -109,34 +107,26 @@ const Weather = () => {
             <div className="w-24 h-24 border-4 border-primary border-t-transparent rounded-full animate-spin absolute top-0" />
             <Waves size={36} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary animate-pulse" />
           </div>
-          <p className="text-[10px] font-black uppercase tracking-[0.5em] text-primary animate-pulse">
-            Fetching Live Data…
-          </p>
+          <p className="text-[10px] font-black uppercase tracking-[0.5em] text-primary animate-pulse">Fetching Live Data…</p>
         </div>
       </div>
     );
   }
 
   const hudStyles = {
-    red:    "bg-red-600/90 text-white shadow-[0_20px_50px_rgba(220,38,38,0.4)]",
+    red: "bg-red-600/90 text-white shadow-[0_20px_50px_rgba(220,38,38,0.4)]",
     yellow: "bg-yellow-500/90 text-slate-900 shadow-[0_20px_50px_rgba(234,179,8,0.4)]",
-    green:  "bg-emerald-600/90 text-white shadow-[0_20px_50px_rgba(16,185,129,0.4)]",
+    green: "bg-emerald-600/90 text-white shadow-[0_20px_50px_rgba(16,185,129,0.4)]",
   };
+
   const getTrendIcon = () => {
     if (safety.trend === 'WORSENING') return <ArrowUpRight className="text-red-400" size={20} />;
     if (safety.trend === 'IMPROVING') return <ArrowDownRight className="text-emerald-400" size={20} />;
     return <Minus className="text-slate-500" size={20} />;
   };
 
-  // Wind direction arrow (rotated to point where wind is going)
-  const windArrow = (deg: number) => (
-    <span style={{ display: 'inline-block', transform: `rotate(${deg}deg)`, fontSize: 18, lineHeight: 1 }}>↑</span>
-  );
-
   return (
     <div className="flex flex-col gap-5 selection:bg-primary/20 pb-20">
-
-      {/* ── Header ── */}
       <div className="bg-slate-950/90 border-b border-white/5 p-5 rounded-b-[3rem] shadow-2xl flex items-center gap-4 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-40 h-40 bg-primary/5 blur-[80px] rounded-full pointer-events-none" />
         <button onClick={() => navigate(-1)} className="p-3 glass-dark rounded-2xl hover:bg-white/10 transition-all border border-white/10 z-10 text-white">
@@ -148,11 +138,9 @@ const Weather = () => {
           </h1>
           <div className="flex items-center gap-2 mt-0.5">
             <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,1)]" />
-            <p className="text-slate-500 text-[8px] font-black uppercase tracking-widest">
-              {placeName} • Live Data
-            </p>
+            <p className="text-slate-500 text-[8px] font-black uppercase tracking-widest">{placeName} • Live Data</p>
             <span className="text-[8px] text-slate-700 font-mono ml-1">
-              · Updated {secsAgo < 60 ? `${secsAgo}s` : `${Math.round(secsAgo/60)}m`} ago
+              · Updated {secsAgo < 60 ? `${secsAgo}s` : `${Math.round(secsAgo / 60)}m`} ago
             </span>
           </div>
         </div>
@@ -161,7 +149,6 @@ const Weather = () => {
             onClick={() => loadMarineWeather(true)}
             className={`p-2.5 bg-white/5 rounded-xl border border-white/10 hover:text-white transition-all ${refreshing ? 'text-primary animate-spin' : 'text-slate-400'}`}
             disabled={refreshing}
-            title="Refresh now"
           >
             <RotateCcw size={16} />
           </button>
@@ -170,8 +157,6 @@ const Weather = () => {
       </div>
 
       <div className="px-4 space-y-5">
-
-        {/* ── Safety HUD ── */}
         <div
           onClick={playVoiceAlert}
           className={`p-8 rounded-[3rem] flex flex-col items-center text-center gap-5 cursor-pointer transition-all active:scale-[0.98] group relative overflow-hidden backdrop-blur-3xl ${hudStyles[safety.color as keyof typeof hudStyles]}`}
@@ -189,9 +174,7 @@ const Weather = () => {
             <p className="text-sm font-black uppercase tracking-widest bg-black/10 py-1.5 px-5 rounded-full inline-block mb-4">
               {safety.status === 'SAFE' ? '✅ SAFE TO FISH' : safety.status === 'MODERATE' ? '⚠️ ADVISORY ACTIVE' : '❌ DO NOT DEPLOY'}
             </p>
-            <div className="bg-white/10 p-5 rounded-[2rem] border border-white/10 text-sm font-bold leading-relaxed">
-              {safety.advice}
-            </div>
+            <div className="bg-white/10 p-5 rounded-[2rem] border border-white/10 text-sm font-bold leading-relaxed">{safety.advice}</div>
           </div>
           <div className="flex items-center gap-2 bg-white/20 px-8 py-4 rounded-full border border-white/20 group-hover:bg-white/30 transition-all">
             <Volume2 size={22} />
@@ -199,7 +182,6 @@ const Weather = () => {
           </div>
         </div>
 
-        {/* ── Trend ── */}
         <div className="glass-dark p-5 rounded-[2.5rem] border border-white/10 shadow-xl flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-white/5 rounded-2xl"><Activity size={20} className="text-slate-400" /></div>
@@ -211,16 +193,14 @@ const Weather = () => {
           <div className="p-3 bg-white/5 rounded-full border border-white/10">{getTrendIcon()}</div>
         </div>
 
-        {/* ── 8-Parameter Marine Grid ── */}
         <div className="grid grid-cols-2 gap-3">
-          <MarineCard icon={Waves}      label="Wave Height"   value={marineData.waveHeight}     unit="m"    color={marineData.waveHeight > 2.5 ? "text-red-400" : "text-primary"} />
-          <MarineCard icon={Wind}       label="Wind Speed"    value={marineData.windSpeed}       unit="kn"   color={marineData.windSpeed > 20 ? "text-red-400" : "text-emerald-400"} />
-          <MarineCard icon={CloudRain}  label="Precipitation" value={marineData.precipitation}  unit="mm"   color="text-cyan-400" />
-          <MarineCard icon={TrendingUp} label="Sea Current"   value={marineData.currentVelocity} unit="m/s" color="text-orange-400" />
-          <MarineCard icon={Thermometer} label="Sea Temp"     value={marineData.sst}             unit="°C"  color="text-rose-400" />
-          <MarineCard icon={Navigation} label="Wave Period"   value={marineData.wavePeriod}      unit="sec" color="text-indigo-400" />
-          {/* NEW: Pressure + Wind Direction */}
-          <MarineCard icon={Gauge}      label="Pressure"      value={marineData.pressure}        unit="hPa" color="text-purple-400" />
+          <MarineCard icon={Waves} label="Wave Height" value={marineData.waveHeight} unit="m" color={marineData.waveHeight > 2.5 ? "text-red-400" : "text-primary"} />
+          <MarineCard icon={Wind} label="Wind Speed" value={marineData.windSpeed} unit="kn" color={marineData.windSpeed > 20 ? "text-red-400" : "text-emerald-400"} />
+          <MarineCard icon={CloudRain} label="Precipitation" value={marineData.precipitation} unit="mm" color="text-cyan-400" />
+          <MarineCard icon={TrendingUp} label="Sea Current" value={marineData.currentVelocity} unit="m/s" color="text-orange-400" />
+          <MarineCard icon={Thermometer} label="Sea Temp" value={marineData.sst} unit="°C" color="text-rose-400" />
+          <MarineCard icon={Navigation} label="Wave Period" value={marineData.wavePeriod} unit="sec" color="text-indigo-400" />
+          <MarineCard icon={Gauge} label="Pressure" value={marineData.pressure} unit="hPa" color="text-purple-400" />
           <div className="glass-dark p-6 rounded-[2.5rem] border border-white/5 shadow-2xl flex flex-col items-center text-center gap-2 group hover:border-primary/20 transition-all relative overflow-hidden">
             <div className="absolute top-[-20%] right-[-10%] w-20 h-20 bg-white/5 blur-3xl rounded-full" />
             <div className="p-4 rounded-3xl bg-white/5 group-hover:scale-110 transition-transform text-sky-400 shadow-lg border border-white/5">
@@ -236,13 +216,10 @@ const Weather = () => {
           </div>
         </div>
 
-        {/* ── 24H Wave Chart ── */}
         <div className="glass-dark p-8 rounded-[3rem] border border-white/10 shadow-2xl relative overflow-hidden">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-primary/20 rounded-2xl">
-                <Waves size={20} className="text-primary" />
-              </div>
+              <div className="p-2.5 bg-primary/20 rounded-2xl"><Waves size={20} className="text-primary" /></div>
               <div>
                 <h3 className="font-black text-white uppercase tracking-[0.15em] text-[10px]">24H WAVE HEIGHT</h3>
                 <p className="text-[7px] font-black text-slate-600 uppercase tracking-widest">Open-Meteo Marine API · Live</p>
@@ -276,7 +253,6 @@ const Weather = () => {
           </p>
         </div>
 
-        {/* ── Vessel Advisory ── */}
         <div className="glass-dark p-6 rounded-[3rem] border border-white/10 shadow-2xl">
           <div className="bg-white/5 border border-white/10 p-5 rounded-[2rem]">
             <div className="flex items-center gap-2.5 mb-5">
@@ -300,11 +276,10 @@ const Weather = () => {
           </div>
         </div>
 
-        {/* ── Polling Pulse ── */}
         <div className="flex justify-center items-center gap-2 py-3 opacity-40">
           <div className="w-1.5 h-1.5 bg-primary rounded-full animate-ping" />
           <span className="text-[7px] font-black uppercase tracking-[0.35em] text-slate-500">
-            Live • Auto-refresh 5 min • {secsAgo < 60 ? `${secsAgo}s` : `${Math.round(secsAgo/60)}m`} since last sync
+            Live • Auto-refresh 5 min • {secsAgo < 60 ? `${secsAgo}s` : `${Math.round(secsAgo / 60)}m`} since last sync
           </span>
         </div>
       </div>
