@@ -1,97 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-<<<<<<< HEAD
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
-=======
->>>>>>> 787debecd21f798eb73c617c68c700a69263cbb5
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-@layer base {
-  :root {
-<<<<<<< HEAD
-    /* Dark Mode Default (Ocean Night) */
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
-
-    --card: 222 47% 13%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 199 89% 48%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 217 32% 17%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217 32% 17%;
-    --muted-foreground: 215 20% 65%;
-
-    --accent: 199 89% 48%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217 32% 17%;
-    --input: 217 32% 17%;
-    --ring: 199 89% 48%;
-
-    --radius: 1.25rem;
-=======
-    --background: 200 30% 97%;
-    --foreground: 210 50% 10%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 210 50% 10%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 210 50% 10%;
-
-    --primary: 205 85% 45%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 195 60% 92%;
-    --secondary-foreground: 205 85% 30%;
-
-    --muted: 200 20% 94%;
-    --muted-foreground: 210 15% 50%;
-
-    --accent: 170 65% 45%;
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 75% 55%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 200 25% 88%;
-    --input: 200 25% 88%;
-    --ring: 205 85% 45%;
-
-    --radius: 0.75rem;
-
-    --ocean-deep: 210 80% 25%;
-    --ocean-mid: 205 85% 45%;
-    --ocean-light: 195 80% 60%;
-    --ocean-surface: 195 60% 92%;
-    --safe: 145 65% 42%;
-    --safe-foreground: 0 0% 100%;
-    --warning: 40 95% 55%;
-    --warning-foreground: 40 95% 15%;
-    --danger: 0 75% 55%;
-    --danger-foreground: 0 0% 100%;
-
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
->>>>>>> 787debecd21f798eb73c617c68c700a69263cbb5
   }
 }
 
@@ -102,18 +10,13 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-<<<<<<< HEAD
     font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
     -webkit-tap-highlight-color: transparent;
     overflow-x: hidden;
-=======
-    font-family: 'Plus Jakarta Sans', sans-serif;
->>>>>>> 787debecd21f798eb73c617c68c700a69263cbb5
   }
 }
 
 @layer utilities {
-<<<<<<< HEAD
   .glass {
     @apply bg-white/10 backdrop-blur-md border border-white/20;
   }
@@ -171,49 +74,3 @@
   animation: pulse-red 2s infinite;
 }
 
-=======
-  .ocean-gradient {
-    background: linear-gradient(135deg, hsl(var(--ocean-deep)), hsl(var(--ocean-mid)), hsl(var(--ocean-light)));
-  }
-
-  .ocean-gradient-soft {
-    background: linear-gradient(180deg, hsl(var(--ocean-mid)), hsl(var(--primary)));
-  }
-
-  .glass-card {
-    @apply bg-card/80 backdrop-blur-md border border-border/50 shadow-lg;
-  }
-
-  .status-safe {
-    @apply bg-safe text-safe-foreground;
-  }
-
-  .status-warning {
-    @apply bg-warning text-warning-foreground;
-  }
-
-  .status-danger {
-    @apply bg-danger text-danger-foreground;
-  }
-}
-
-@keyframes wave {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
-}
-
-@keyframes pulse-sos {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 hsl(0 75% 55% / 0.5); }
-  50% { transform: scale(1.05); box-shadow: 0 0 0 20px hsl(0 75% 55% / 0); }
-}
-
-@keyframes fade-up {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes slide-up {
-  from { opacity: 0; transform: translateY(100%); }
-  to { opacity: 1; transform: translateY(0); }
-}
->>>>>>> 787debecd21f798eb73c617c68c700a69263cbb5
