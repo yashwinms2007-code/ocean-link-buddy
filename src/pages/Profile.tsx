@@ -207,7 +207,6 @@ const Profile = () => {
   );
 };
 
-<<<<<<< HEAD
 const ProfileItem = ({ icon: Icon, label, color = "text-slate-400", onClick, last = false }: any) => (
   <div onClick={onClick} className={`group flex items-center justify-between p-8 cursor-pointer transition-all active:bg-white/[0.03] hover:bg-white/[0.02] ${!last && 'border-b border-white/5'}`}>
      <div className="flex items-center gap-6">
@@ -222,6 +221,4 @@ const ProfileItem = ({ icon: Icon, label, color = "text-slate-400", onClick, las
   </div>
 );
 
-=======
->>>>>>> 787debecd21f798eb73c617c68c700a69263cbb5
 export default Profile;

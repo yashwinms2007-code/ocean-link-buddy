@@ -29,7 +29,3 @@ const LanguageSwitcher = () => {
 };
 
 export default LanguageSwitcher;
-<<<<<<< HEAD
-
-=======
->>>>>>> 787debecd21f798eb73c617c68c700a69263cbb5

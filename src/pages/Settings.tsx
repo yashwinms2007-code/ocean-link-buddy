@@ -174,7 +174,6 @@ const Settings = () => {
   );
 };
 
-<<<<<<< HEAD
 const SettingItem = ({ icon: Icon, label, active, onClick, last = false }: any) => (
   <div onClick={onClick} className={`p-8 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-all group active:bg-white/[0.02] ${!last && 'border-b border-white/5'}`}>
      <div className="flex items-center gap-5">
@@ -189,6 +188,4 @@ const SettingItem = ({ icon: Icon, label, active, onClick, last = false }: any) 
   </div>
 );
 
-=======
->>>>>>> 787debecd21f798eb73c617c68c700a69263cbb5
 export default Settings;

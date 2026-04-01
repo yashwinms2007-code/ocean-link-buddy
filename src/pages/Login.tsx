@@ -6,6 +6,34 @@ import mitraLogo from "@/assets/mitra-logo.png";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Mail, Lock, LogIn, UserPlus, Globe, Ship, ShieldCheck } from "lucide-react";
+
+const Login = () => {
+  const { t } = useLanguage();
+  const navigate = useNavigate();
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) navigate("/dashboard", { replace: true });
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) navigate("/dashboard", { replace: true });
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  const handleSubmit = async () => {
+    if (!email || !password) {
+      toast.error(t("fillAllFields"));
+      return;
+    }
+    if (password.length < 6) {
+      toast.error(t("passwordLengthError"));
       return;
     }
 
@@ -135,7 +163,3 @@ import { Mail, Lock, LogIn, UserPlus, Globe, Ship, ShieldCheck } from "lucide-re
 };
 
 export default Login;
-<<<<<<< HEAD
-
-=======
->>>>>>> 787debecd21f798eb73c617c68c700a69263cbb5
