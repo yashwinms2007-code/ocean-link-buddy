@@ -1,5 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { LanguageProvider } from "@/contexts/LanguageContext";
+import Layout from "./components/Layout";
 import GlobalNotificationListener from "@/components/GlobalNotificationListener";
 import GlobalSafetyBarrier from "@/components/GlobalSafetyBarrier";
 import Splash from "./pages/Splash";
