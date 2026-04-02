@@ -154,7 +154,6 @@ const MarineMap: React.FC<MarineMapProps> = ({
               fillOpacity: getOpacity(point),
               color: point.frontDetected && activeLayer === 'prediction' ? '#f97316' : 'transparent',
               weight: point.frontDetected && activeLayer === 'prediction' ? 1.5 : 0,
-              dashArray: '4, 6',
             }}
           >
             <Popup>
@@ -190,7 +189,7 @@ const MarineMap: React.FC<MarineMapProps> = ({
             <Circle
               center={[sos.lat, sos.lon]}
               radius={1500}
-              pathOptions={{ fillColor: '#ef4444', fillOpacity: 0.2, color: '#ef4444', weight: 2, dashArray: '5, 5' }}
+              pathOptions={{ fillColor: '#ef4444', fillOpacity: 0.2, color: '#ef4444', weight: 2 }}
             />
             <Marker position={[sos.lat, sos.lon]} icon={sosIcon}>
               <Popup>
@@ -208,7 +207,7 @@ const MarineMap: React.FC<MarineMapProps> = ({
             key={`zone-${idx}`}
             center={zone.position}
             radius={zone.radius}
-            pathOptions={{ fillColor: zone.color, fillOpacity: 0.15, color: zone.color, weight: 2, dashArray: '6, 10' }}
+            pathOptions={{ fillColor: zone.color, fillOpacity: 0.15, color: zone.color, weight: 2 }}
           >
             <Popup><div style={{ fontWeight: 900, color: zone.color }}>{zone.label}</div></Popup>
           </Circle>

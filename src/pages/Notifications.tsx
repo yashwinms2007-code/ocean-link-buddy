@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, AlertTriangle, CloudRain, Fish, Bell, CheckCircle2, BellOff, Info, ShieldAlert, Waves, Zap, Navigation } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { ArrowLeft, AlertTriangle, CloudRain, Fish, Bell, CheckCircle2, BellOff, Info, ShieldAlert, Waves, Zap, Navigation, Map } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { formatDistanceToNow } from "date-fns";
 import { getAllNotifications, markAllAsReadSync, markAsRead, DBNotification } from "@/services/notificationStorage";
+import { toast } from "sonner";
 
 const Notifications = () => {
   const { t } = useLanguage();
@@ -32,6 +33,12 @@ const Notifications = () => {
       await markAsRead(notif.id);
       await loadNotifications();
     }
+
+    // If notification has geolocation data (like an SOS), navigate to map
+    if (notif.data?.lat && notif.data?.lng) {
+      toast.info("Opening SOS Location on Maritime Map...");
+      navigate(`/sea-map?lat=${notif.data.lat}&lng=${notif.data.lng}&sos=true`);
+    }
   };
 
   const typeStyles: Record<string, string> = {
@@ -50,6 +57,15 @@ const Notifications = () => {
     }
   };
 
+  const handleMapNavigation = () => {
+    if (!navigator.onLine) {
+      toast.warning("Entering Offline Map Mode — Using cached coastal data.");
+      navigate("/sea-map?mode=offline");
+    } else {
+      navigate("/sea-map");
+    }
+  };
+
   const filteredNotifs = filter === "ALL" 
     ? notifications 
     : notifications.filter(n => n.type === filter.toLowerCase());
@@ -60,7 +76,7 @@ const Notifications = () => {
       <div className="bg-slate-900 border-b border-white/10 p-6 rounded-b-[3.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-center gap-4 relative overflow-hidden">
         <div className="absolute top-[-30px] right-[-30px] w-48 h-48 bg-primary/5 blur-[80px] rounded-full pointer-events-none" />
         
-        <button onClick={() => navigate(-1)} className="p-3.5 glass-dark rounded-2xl border border-white/10 hover:bg-white/10 transition-all shadow-xl relative z-10">
+        <button onClick={() => navigate(-1)} className="p-3.5 glass-dark rounded-2xl border border-white/10 hover:bg-white/10 transition-all shadow-xl relative z-10 text-white">
           <ArrowLeft size={20} />
         </button>
         <div className="relative z-10">
@@ -70,17 +86,23 @@ const Notifications = () => {
           <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em]">{t("stayInformed")}</p>
         </div>
         <div className="ml-auto flex items-center gap-3 relative z-10">
+           <button 
+             onClick={handleMapNavigation}
+             className="p-3 bg-white/5 rounded-2xl border border-white/10 hover:bg-primary hover:text-white transition-all text-slate-400"
+           >
+              <Map size={24} />
+           </button>
            {notificationsEnabled ? (
-              <div className="relative p-3 bg-primary/10 rounded-2xl border border-primary/20">
+              <div className="relative p-3 bg-primary/10 rounded-2xl border border-primary/20 text-white">
                  <Bell size={24} className="text-primary animate-pulse" />
                  {notifications.some(n => !n.read) && (
                    <div className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-slate-900 animate-ping" />
                  )}
               </div>
            ) : (
-             <div className="p-3 bg-white/5 rounded-2xl border border-white/10 opacity-50">
-                <BellOff size={24} className="text-slate-500" />
-             </div>
+              <div className="p-3 bg-white/5 rounded-2xl border border-white/10 opacity-50">
+                 <BellOff size={24} className="text-slate-500" />
+              </div>
            )}
         </div>
       </div>
@@ -120,7 +142,7 @@ const Notifications = () => {
                  ))}
               </div>
 
-              <div className="flex items-center justify-between px-2 mt-4">
+              <div className="flex items-center justify-between px-2 mt-4 text-white">
                  <div className="flex items-center gap-2">
                     <Zap size={10} className="text-primary animate-pulse" />
                     <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">{notifications.length} TRANSMISSIONS</h3>
@@ -145,13 +167,13 @@ const Notifications = () => {
                      return (
                        <div 
                          key={notif.id} 
-                         className={`glass-dark rounded-[2.5rem] p-7 flex items-center gap-6 border shadow-2xl group transition-all cursor-pointer relative overflow-hidden animate-in slide-in-from-bottom-5 fade-in duration-500 ${notif.read ? 'border-white/5 opacity-60' : 'border-white/10 hover:border-primary/50'}`}
+                         className={`glass-dark rounded-[3rem] p-8 flex items-center gap-6 border shadow-2xl group transition-all cursor-pointer relative overflow-hidden animate-in slide-in-from-bottom-5 fade-in duration-500 ${notif.read ? 'border-white/5 opacity-60' : 'border-white/10 hover:border-primary/50'}`}
                          style={{ animationDelay: `${i * 0.05}s` }}
                          onClick={() => handleNotificationClick(notif)}
                        >
                          {!notif.read && <div className="absolute top-0 left-0 w-1.5 h-full bg-primary" />}
                          
-                         <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center flex-shrink-0 border transition-all group-hover:scale-110 ${typeStyles[notif.type]}`}>
+                         <div className={`w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 border transition-all group-hover:scale-110 ${typeStyles[notif.type]}`}>
                            <Icon size={28} />
                          </div>
                          
@@ -162,7 +184,14 @@ const Notifications = () => {
                            </div>
                            {notif.body && <p className="text-xs text-slate-500 mt-1.5 leading-relaxed font-medium line-clamp-2">{notif.body}</p>}
                            
-                           {!notif.read && (
+                           {notif.data?.lat && (
+                             <div className="flex items-center gap-2 mt-4 px-4 py-2 bg-emerald-500/10 rounded-full border border-emerald-500/20 w-fit">
+                                <Navigation size={12} className="text-emerald-400 animate-bounce" />
+                                <span className="text-[8px] font-black text-emerald-400 uppercase tracking-widest">MAP COORDINATES LINKED</span>
+                             </div>
+                           )}
+
+                           {!notif.read && !notif.data?.lat && (
                              <div className="flex items-center gap-2 mt-3 p-2 bg-primary/10 rounded-xl border border-primary/20 w-fit">
                                 <div className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
                                 <span className="text-[8px] font-black text-primary uppercase tracking-widest">New Transmission</span>

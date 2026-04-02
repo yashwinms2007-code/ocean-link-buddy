@@ -16,6 +16,8 @@ import {
   startContinuousTracking,
   stopContinuousTracking,
 } from "@/services/sosService";
+import { saveNotification } from "@/services/notificationStorage";
+import { triggerAlert } from "@/utils/alertEngine";
 
 type Priority = "idle" | "medium" | "high" | "critical";
 
@@ -169,10 +171,18 @@ const SOS = () => {
 
   const handleSOS = () => {
     setStatus("sent");
-    toast.error(t("sosSuccessToast"), {
-      duration: 10000,
-      description: "Broadcasting to nearby vessels + queuing for authorities.",
+    saveNotification({
+      title: "🚨 SOS EMERGENCY DEPLOYED",
+      body: `Distress signal active at ${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}. Multi-channel rescue initiated.`,
+      type: "danger",
+      data: { lat: coords.lat, lng: coords.lng, isSOS: true }
     });
+    triggerAlert(
+      "🚨 SOS EMERGENCY DEPLOYED",
+      "Broadcasting to nearby vessels + queuing for authorities.",
+      "SOS",
+      language
+    );
   };
 
   const handleCancel = () => {

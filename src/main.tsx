@@ -5,16 +5,12 @@ import "./index.css";
 createRoot(document.getElementById("root")!).render(<App />);
 
 
-// Register Offline Service Worker (PWA Core)
+// Service Worker Disabled to clear legacy caching
+console.log("ServiceWorker Registration Disabled for Mitra V2 Redesign Sync.");
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").then(
-      (registration) => {
-        console.log("ServiceWorker registration successful with scope: ", registration.scope);
-      },
-      (err) => {
-        console.log("ServiceWorker registration failed: ", err);
-      }
-    );
+  navigator.serviceWorker.getRegistrations().then(registrations => {
+    for (let registration of registrations) {
+      registration.unregister();
+    }
   });
 }

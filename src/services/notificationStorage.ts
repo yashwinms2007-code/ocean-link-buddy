@@ -44,6 +44,7 @@ export const saveNotification = async (notif: Omit<DBNotification, "id" | "read"
     read: false,
   };
   await db.add(STORE_NAME, newNotif);
+  window.dispatchEvent(new Event("mitra-notification-change"));
   return newNotif;
 };
 
@@ -65,6 +66,7 @@ export const markAsRead = async (id: string) => {
   if (notif) {
     notif.read = true;
     await db.put(STORE_NAME, notif);
+    window.dispatchEvent(new Event("mitra-notification-change"));
   }
 };
 
@@ -83,6 +85,7 @@ export const markAllAsReadSync = async () => {
     }
   }
   await tx.done;
+  window.dispatchEvent(new Event("mitra-notification-change"));
 };
 
 /**
@@ -91,6 +94,7 @@ export const markAllAsReadSync = async () => {
 export const deleteNotification = async (id: string) => {
   const db = await getDB();
   await db.delete(STORE_NAME, id);
+  window.dispatchEvent(new Event("mitra-notification-change"));
 };
 
 /**

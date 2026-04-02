@@ -1,251 +1,197 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Navigation, Globe, WifiOff, Compass, Layers, Thermometer, Droplets, Target, Anchor, Waves, TrendingUp, ShieldCheck, Wind, Gauge } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { ArrowLeft, Navigation, Globe, WifiOff, Compass, Layers, Thermometer, Droplets, Target, Anchor, Waves, TrendingUp, ShieldCheck, Wind, Gauge, Map as MapIcon, Maximize2, Layers as LayersIcon, AlertTriangle } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import MarineMap from "@/components/MarineMap";
 import { toast } from "sonner";
 import { fetchSatelliteData, getOceanStats, SatellitePoint, OceanStats } from "@/services/oceanDataService";
 import { calculateDeadReckoning } from "@/services/sosService";
 import { fetchMarineWeather, MarineData, degToCompass } from "@/services/marineWeatherService";
+import { motion } from "framer-motion";
 
 const MANGALORE_LAT = 12.9141;
 const MANGALORE_LNG = 74.8560;
 
-const isInland = (lat: number, lng: number) => lng > 75.5 || lng < 72.5 || lat > 15.5 || lat < 8;
-
 const SeaMap = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
-  const [coords, setCoords] = useState({ lat: MANGALORE_LAT, lng: MANGALORE_LNG });
-  const [offlineMode, setOfflineMode] = useState(false);
-  const [isDeadReckoning, setIsDeadReckoning] = useState(false);
-  const [activeLayer, setActiveLayer] = useState<'none' | 'prediction' | 'sst' | 'chlorophyll'>('prediction');
-  const [showNautical, setShowNautical] = useState(true);
+  const [searchParams] = useSearchParams();
+  
+  // Extract deep-link coordinates if opening from an Alert
+  const initialLat = searchParams.get("lat") ? parseFloat(searchParams.get("lat")!) : MANGALORE_LAT;
+  const initialLng = searchParams.get("lng") ? parseFloat(searchParams.get("lng")!) : MANGALORE_LNG;
+  const isSOSLink = searchParams.get("sos") === "true";
+  const isOffline = searchParams.get("mode") === "offline";
+
+  const [coords, setCoords] = useState({ lat: initialLat, lng: initialLng });
+  const [vesselStatus, setVesselStatus] = useState({ heading: 0, speed: 0, accuracy: 0 });
+  const [activeLayer, setActiveLayer] = useState<'none' | 'prediction' | 'sst' | 'chlorophyll'>('none');
   const [satData, setSatData] = useState<SatellitePoint[]>([]);
-  const [stats, setStats] = useState<OceanStats | null>(null);
-  const [loadingSat, setLoadingSat] = useState(false);
-  const [speed, setSpeed] = useState<number | null>(null);
-  const [heading, setHeading] = useState<number | null>(null);
-  const [gpsTrail, setGpsTrail] = useState<[number, number][]>([]);
-  const [lastSync, setLastSync] = useState<Date>(new Date());
   const [weather, setWeather] = useState<MarineData | null>(null);
-  const MAX_TRAIL = 30;
 
   useEffect(() => {
-    if (!navigator.geolocation) return;
-    const watchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        const { latitude, longitude, speed: spd, heading: hdg } = pos.coords;
-        if (isInland(latitude, longitude)) {
-          toast.info("📍 GPS detected inland — using Mangalore coast");
-          setOfflineMode(false);
-          return;
-        }
-        setCoords({ lat: latitude, lng: longitude });
-        setIsDeadReckoning(false);
-        setOfflineMode(false);
-        setLastSync(new Date());
-        if (spd !== null) setSpeed(Math.round(spd * 1.944));
-        if (hdg !== null) setHeading(Math.round(hdg));
-        setGpsTrail((prev) => [...prev, [latitude, longitude]].slice(-MAX_TRAIL) as [number, number][]);
-      },
-      () => {
-        setOfflineMode(true);
-        setIsDeadReckoning(true);
-        setGpsTrail((prev) => {
-          if (prev.length === 0) return prev;
-          const [lastLat, lastLon] = prev[prev.length - 1];
-          const est = calculateDeadReckoning(lastLat, lastLon, 50, heading ?? 0);
-          setCoords({ lat: est.lat, lng: est.lon });
-          return [...prev, [est.lat, est.lon]].slice(-MAX_TRAIL) as [number, number][];
-        });
-      },
-      { enableHighAccuracy: true, maximumAge: 3000, timeout: 15000 }
-    );
-    return () => navigator.geolocation.clearWatch(watchId);
-  }, [t, heading]);
+    const loadData = async () => {
+      const { current } = await fetchMarineWeather(coords.lat, coords.lng);
+      setWeather(current);
+      const data = await fetchSatelliteData(coords.lat, coords.lng);
+      setSatData(data);
 
-  useEffect(() => {
-    const timer = setTimeout(async () => {
-      setLoadingSat(true);
-      try {
-        const data = await fetchSatelliteData(coords.lat, coords.lng);
-        setSatData(data);
-        setStats(getOceanStats(data));
-        setLastSync(new Date());
-      } finally {
-        setLoadingSat(false);
+      if (isSOSLink) {
+        toast.error("DIRE EMERGENCY SIGNAL: Analyzing rescue coordinates...", { duration: 6000 });
       }
-    }, 600);
-    return () => clearTimeout(timer);
-  }, [coords.lat.toFixed(2), coords.lng.toFixed(2)]);
-
-  useEffect(() => {
-    const loadWeather = async () => {
-      try {
-        const { current } = await fetchMarineWeather(coords.lat, coords.lng);
-        setWeather(current);
-      } catch { /* silent */ }
+      if (isOffline) {
+        toast.warning("OFFLINE MODE: Displaying cached coastal telemetry.");
+      }
     };
-    loadWeather();
-    const interval = setInterval(loadWeather, 300000);
-    return () => clearInterval(interval);
-  }, [coords.lat.toFixed(1), coords.lng.toFixed(1)]);
+    loadData();
+  }, [coords.lat, coords.lng, isOffline, isSOSLink]);
 
-  const mapZones = [
-    { position: [12.99, 74.81] as [number, number], radius: 1000, color: "#10b981", label: t("safeZoneLegend") },
-    { position: [12.95, 74.76] as [number, number], radius: 1500, color: "#ef4444", label: t("dangerZoneLegend") },
-    { position: [13.02, 74.79] as [number, number], radius: 800, color: "#3b82f6", label: t("fishZoneLegend") },
+  // Real-time High-Accuracy GPS Tracking
+  useEffect(() => {
+    if (!searchParams.get("lat") && !searchParams.get("lng") && "geolocation" in navigator) {
+       const watchId = navigator.geolocation.watchPosition(
+          (pos) => {
+             const { latitude, longitude, heading, speed, accuracy } = pos.coords;
+             setCoords({ lat: latitude, lng: longitude });
+             setVesselStatus({ 
+                heading: heading ?? 0, 
+                speed: speed ? parseFloat((speed * 1.94384).toFixed(1)) : 0, // Convert m/s to knots
+                accuracy: Math.round(accuracy)
+             });
+             
+             // Only toast once for successful lock
+             if (vesselStatus.accuracy === 0) {
+                toast.success("GPS LOCKED: Real-time high-accuracy tracking active.");
+             }
+          },
+          (err) => {
+            console.error("GPS Error:", err);
+            if (err.code === err.TIMEOUT) {
+              toast.info("GPS Timeout: Scanning for satellite fix...");
+            }
+          },
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+       );
+       return () => navigator.geolocation.clearWatch(watchId);
+    }
+  }, [searchParams]);
+
+  const markers = [
+    { 
+      position: [coords.lat, coords.lng] as [number, number], 
+      label: isSOSLink ? "DISTRESS SIGNAL SOURCE" : "Your Vessel", 
+      isSOS: isSOSLink,
+      heading: vesselStatus.heading,
+      speed: vesselStatus.speed
+    }
   ];
-
-  const layerButtons = [
-    { id: 'prediction', icon: Target, label: 'PFZ', color: 'text-green-400' },
-    { id: 'sst', icon: Thermometer, label: 'SST', color: 'text-red-400' },
-    { id: 'chlorophyll', icon: Droplets, label: 'Chl', color: 'text-primary' },
-    { id: 'none', icon: Layers, label: 'Base', color: 'text-slate-400' },
-  ];
-
-  const compassDir = heading !== null
-    ? ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round(heading / 45) % 8]
-    : '--';
-
-  const syncAgo = Math.round((Date.now() - lastSync.getTime()) / 1000);
 
   return (
-    <div className="flex flex-col gap-3 h-[calc(100vh-120px)]">
-      <div className="bg-slate-950/80 backdrop-blur-xl border-b border-white/5 p-4 rounded-b-[2rem] shadow-2xl flex items-center gap-3">
-        <button onClick={() => navigate(-1)} className="p-2.5 bg-white/5 rounded-xl hover:bg-white/10 transition-all border border-white/10">
-          <ArrowLeft size={18} />
-        </button>
-        <div className="flex-1">
-          <h1 className="text-lg font-black tracking-tight">{t("seaMap")}</h1>
-          <div className="flex items-center gap-2 mt-0.5">
-            <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${offlineMode ? 'bg-yellow-400' : 'bg-green-400'}`} />
-            <p className="text-slate-400 text-[8px] font-black uppercase tracking-widest">
-              {isDeadReckoning ? '⚠️ Dead Reckoning' : offlineMode ? t("offlineModeActive") : t("realTimeGps")}
-            </p>
-            <span className="text-[8px] text-slate-600 font-mono ml-1">• {syncAgo}s ago</span>
-          </div>
-        </div>
-        <button
-          onClick={() => setShowNautical((s) => !s)}
-          className={`p-2 rounded-xl border transition-all ${showNautical ? 'bg-primary/20 border-primary/40 text-primary' : 'bg-white/5 border-white/10 text-slate-600'}`}
+    <div className="flex flex-col gap-12 pb-32 h-screen overflow-hidden bg-slate-50">
+      {/* ── HEADER ── */}
+      <div className="px-10 pt-10 space-y-4">
+        <motion.div 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="flex items-center justify-between"
         >
-          <Anchor size={16} />
-        </button>
-        {offlineMode ? <WifiOff size={18} className="text-yellow-400" /> : <Globe size={18} className="text-green-400 animate-pulse" />}
+          <div className="space-y-4">
+            <h1 className="text-5xl font-black tracking-tighter text-slate-950 uppercase leading-none">Sea Explorer</h1>
+            <p className="text-sm font-bold text-slate-400 max-w-[320px] leading-relaxed">
+              {isSOSLink ? "Rescue Intelligence Mode Active." : "Real-time maritime navigation & PFZ intelligence."}
+            </p>
+          </div>
+          <button onClick={() => navigate(-1)} className="p-4 bg-white rounded-3xl shadow-xl text-slate-900 hover:bg-slate-50 border border-slate-100">
+             <ArrowLeft size={24} />
+          </button>
+        </motion.div>
       </div>
 
-      <div className="px-3 flex-1 flex flex-col space-y-2.5 pb-2 overflow-hidden">
-        <div className="bg-slate-950/60 border border-white/5 p-3 rounded-2xl flex items-center justify-between gap-2 shadow-lg">
-          <div className="flex items-center gap-3">
-            <div className="flex flex-col items-center">
-              <div className="p-1.5 bg-primary/10 rounded-lg mb-0.5">
-                <Compass size={16} className="text-primary" style={{ transform: `rotate(${heading ?? 0}deg)`, transition: 'transform 0.5s' }} />
+      {/* ── MAP CONTAINER ── */}
+      <div className="flex-1 min-h-0 px-6 mb-8">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-white border-4 border-white h-full rounded-[4rem] shadow-2xl relative overflow-hidden flex flex-col pt-2"
+        >
+           {/* Telemetry Overlay */}
+           <div className="absolute top-10 left-10 right-10 z-[1000] flex justify-between items-start pointer-events-none">
+              <div className={`super-glass p-6 rounded-[2.5rem] shadow-2xl pointer-events-auto flex items-center gap-10 border ${isSOSLink ? 'border-red-500/30' : 'border-white/20'}`}>
+                 <div className="flex flex-col gap-2">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">{isSOSLink ? 'Rescue Target' : 'Vessel Position'}</span>
+                    <span className={`text-sm font-black leading-none tracking-tight ${isSOSLink ? 'text-red-600' : 'text-slate-950'}`}>{coords.lat.toFixed(4)}° N, {coords.lng.toFixed(4)}° E</span>
+                 </div>
+                 <div className="w-px h-10 bg-slate-100" />
+                 <div className="flex flex-col gap-2 text-slate-950">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Safe Corridor</span>
+                    <span className="text-sm font-black leading-none tracking-tight uppercase">{weather ? 'TRACKING' : 'SCANNING'}</span>
+                 </div>
               </div>
-              <span className="text-[8px] font-black text-slate-500 uppercase">{compassDir}</span>
-            </div>
-            <div className="flex gap-3">
-              <div>
-                <p className="text-[7px] font-black text-slate-600 uppercase tracking-widest mb-0.5">Lat</p>
-                <p className="text-sm font-mono font-black text-white">{coords.lat.toFixed(4)}</p>
-              </div>
-              <div>
-                <p className="text-[7px] font-black text-slate-600 uppercase tracking-widest mb-0.5">Lon</p>
-                <p className="text-sm font-mono font-black text-white">{coords.lng.toFixed(4)}</p>
-              </div>
-            </div>
-          </div>
-          <div className="flex flex-col items-end gap-1.5">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 bg-white/5 px-2 py-1 rounded-lg border border-white/5">
-                <TrendingUp size={10} className="text-primary" />
-                <span className="text-[8px] font-black text-white">{speed !== null ? `${speed} kn` : 'GPS…'}</span>
-              </div>
-              {weather && (
-                <div className="flex items-center gap-1 bg-blue-500/10 px-2 py-1 rounded-lg border border-blue-500/20">
-                  <Wind size={10} className="text-blue-400" />
-                  <span className="text-[8px] font-black text-blue-300">
-                    {weather.windSpeed} kn {degToCompass(weather.windDirection)}
-                  </span>
+
+              {isOffline && (
+                <div className="bg-amber-500 text-white px-6 py-3 rounded-full flex items-center gap-3 shadow-xl pointer-events-auto border border-white/20">
+                   <WifiOff size={16} />
+                   <span className="text-[10px] font-black uppercase tracking-widest">Offline View</span>
                 </div>
               )}
-            </div>
-            <div className="flex gap-1">
-              {layerButtons.map((btn) => (
-                <button
-                  key={btn.id}
-                  onClick={() => setActiveLayer(btn.id as any)}
-                  className={`p-1.5 rounded-lg border transition-all ${activeLayer === btn.id ? 'bg-primary/20 border-primary/50' : 'bg-white/5 border-white/5 opacity-40 hover:opacity-80'}`}
-                >
-                  <btn.icon size={13} className={activeLayer === btn.id ? btn.color : 'text-slate-500'} />
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
 
-        {stats && (
-          <div className="grid grid-cols-5 gap-1.5">
-            {[
-              { label: 'SST', value: `${stats.averageSST}°C`, icon: Thermometer, color: 'text-red-400' },
-              { label: 'Chlor', value: `${stats.averageChlorophyll}`, icon: Droplets, color: 'text-green-400' },
-              { label: 'Hi-Conf', value: `${stats.highConfidenceZones}`, icon: ShieldCheck, color: 'text-primary' },
-              { label: 'Fronts', value: `${stats.activeFronts}`, icon: Waves, color: 'text-yellow-400' },
-              { label: 'Press', value: weather ? `${weather.pressure}hPa` : '—', icon: Gauge, color: 'text-purple-400' },
-            ].map(({ label, value, icon: Icon, color }) => (
-              <div key={label} className="bg-slate-950/60 border border-white/5 p-2 rounded-xl flex flex-col items-center shadow-sm">
-                <Icon size={11} className={color} />
-                <span className="text-[6px] font-black uppercase text-slate-600 tracking-widest mt-0.5">{label}</span>
-                <span className="text-[9px] font-black text-white mt-0.5">{value}</span>
+              <div className="super-glass p-3 rounded-[2.2rem] shadow-2xl pointer-events-auto flex flex-col gap-3 border border-white/20 ml-auto">
+                 {['prediction', 'sst', 'chlorophyll', 'none'].map((l) => (
+                    <button 
+                      key={l}
+                      onClick={() => setActiveLayer(l as any)}
+                      className={`p-4 rounded-[1.8rem] transition-all ${activeLayer === l ? 'bg-primary text-white shadow-xl shadow-primary/30 scale-110' : 'text-slate-400 hover:bg-slate-50'}`}
+                    >
+                       {l === 'prediction' && <Target size={24} strokeWidth={2.5} />}
+                       {l === 'sst' && <Thermometer size={24} strokeWidth={2.5} />}
+                       {l === 'chlorophyll' && <Droplets size={24} strokeWidth={2.5} />}
+                       {l === 'none' && <MapIcon size={24} strokeWidth={2.5} />}
+                    </button>
+                 ))}
               </div>
-            ))}
-          </div>
-        )}
+           </div>
 
-        <div className="flex-1 rounded-[2rem] border border-white/5 shadow-2xl relative overflow-hidden" style={{ minHeight: '260px', background: '#050d1a' }}>
-          {loadingSat && (
-            <div className="absolute top-3 right-3 z-[1001] bg-slate-950/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-primary/30 flex items-center gap-2">
-              <div className="w-1.5 h-1.5 bg-primary rounded-full animate-ping" />
-              <span className="text-[8px] font-black uppercase text-primary tracking-[0.2em]">Satellite Sync…</span>
-            </div>
-          )}
-          {isDeadReckoning && (
-            <div className="absolute top-3 left-3 z-[1001] bg-yellow-500/20 backdrop-blur-md px-3 py-1.5 rounded-full border border-yellow-500/30 flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse" />
-              <span className="text-[8px] font-black uppercase text-yellow-400 tracking-widest">Dead Reckoning</span>
-            </div>
-          )}
-          {gpsTrail.length > 1 && (
-            <div className="absolute bottom-20 right-3 z-[1001] bg-slate-950/80 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10">
-              <span className="text-[7px] font-black text-primary uppercase tracking-widest">{gpsTrail.length} pts trail</span>
-            </div>
-          )}
-          <MarineMap
-            center={[coords.lat, coords.lng]}
-            zoom={11}
-            height="100%"
-            markers={[{ position: [coords.lat, coords.lng], label: t("yourVessel"), heading: heading ?? 0, windDir: weather?.windDirection ?? 0 }]}
-            satellitePoints={satData}
-            activeLayer={activeLayer}
-            zones={mapZones}
-            route={gpsTrail}
-            showNautical={showNautical}
-          />
-          <div className="absolute bottom-3 left-3 right-3 bg-slate-950/75 backdrop-blur-md p-2.5 rounded-2xl border border-white/10 flex justify-around shadow-2xl z-[1000]">
-            {[
-              { color: '#10b981', label: 'Safe/High PFZ' },
-              { color: '#fbbf24', label: 'Medium' },
-              { color: '#ef4444', label: 'Low/Danger' },
-              { color: '#f97316', label: '🌊 Front' },
-            ].map(({ color, label }) => (
-              <div key={label} className="flex flex-col items-center gap-0.5">
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color, boxShadow: `0 0 6px ${color}88` }} />
-                <span className="text-[6px] font-black uppercase text-white tracking-wider leading-none">{label}</span>
+           <div className="flex-1 rounded-[3.5rem] overflow-hidden relative">
+              <MarineMap
+                center={[coords.lat, coords.lng]}
+                zoom={isSOSLink ? 15 : 12}
+                height="100%"
+                activeLayer={activeLayer}
+                satellitePoints={satData}
+                markers={markers}
+              />
+              
+              {/* Floating Compass Overlay */}
+              <div className="absolute bottom-8 right-8 z-[1000] super-glass p-8 rounded-full shadow-2xl transition-transform hover:scale-110 active:rotate-180 duration-700 bg-white/80 border border-white/20">
+                 <Compass size={48} strokeWidth={2.5} className="text-primary" />
               </div>
-            ))}
-          </div>
-        </div>
+
+              {isSOSLink && (
+                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-[1000]">
+                    <div className="relative">
+                       <div className="w-64 h-64 border-4 border-dashed border-red-500/40 rounded-full animate-[spin_10s_linear_infinite]" />
+                       <div className="absolute inset-0 flex items-center justify-center">
+                          <AlertTriangle size={40} className="text-red-500 animate-pulse" />
+                       </div>
+                    </div>
+                 </div>
+              )}
+           </div>
+
+           {/* Legend Strip */}
+           <div className="absolute bottom-10 left-10 right-10 flex justify-center z-[1000] pointer-events-none">
+              <div className="super-glass px-12 py-5 rounded-full shadow-2xl pointer-events-auto flex gap-12 border border-white/20">
+                 <div className="flex items-center gap-4">
+                    <div className="w-3.5 h-3.5 bg-emerald-500 rounded-full" />
+                    <span className="text-[10px] font-black uppercase text-slate-800 tracking-widest leading-none">Stable Sea</span>
+                 </div>
+                 <div className="flex items-center gap-4">
+                    <div className="w-3.5 h-3.5 bg-red-500 rounded-full animate-pulse" />
+                    <span className="text-[10px] font-black uppercase text-slate-800 tracking-widest leading-none">Danger Zone</span>
+                 </div>
+              </div>
+           </div>
+        </motion.div>
       </div>
     </div>
   );

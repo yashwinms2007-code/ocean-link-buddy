@@ -13,7 +13,7 @@ export const DEFAULT_THRESHOLDS: AlertThresholds = {
 };
 
 /**
- * Triggers a multi-modal alert (UI + Audio + Vibration)
+ * Triggers a multi-modal alert (System-level Native UI + In-App UI + Audio + Vibration)
  */
 export const triggerAlert = (
   title: string,
@@ -21,13 +21,24 @@ export const triggerAlert = (
   type: "DANGER" | "WARNING" | "SOS",
   language: string = "en"
 ) => {
-  // 1. UI Toast
+  // 1. Browser Native Notification (Critical for background alerting)
+  if ("Notification" in window && Notification.permission === "granted") {
+    new Notification(title, {
+      body: message,
+      icon: "/favicon.png",
+      tag: type === "SOS" ? "emergency-alert" : "maritime-alert",
+      requireInteraction: type === "SOS" || type === "DANGER",
+      silent: false,
+    });
+  }
+
+  // 2. In-App UI Toast
   toast.error(title, {
     description: message,
     duration: 10000,
   });
 
-  // 2. Audible Alert (Multilingual Voice)
+  // 3. Audible Alert (Multilingual Voice)
   if ("speechSynthesis" in window) {
     const speech = new SpeechSynthesisUtterance(`${title}. ${message}`);
     if (language === "kn") speech.lang = "kn-IN";
@@ -38,7 +49,7 @@ export const triggerAlert = (
     window.speechSynthesis.speak(speech);
   }
 
-  // 3. Physical Feedback (Vibration)
+  // 4. Physical Feedback (Vibration)
   if (navigator.vibrate) {
     if (type === "DANGER" || type === "SOS") {
       navigator.vibrate([500, 200, 500, 200, 500]);

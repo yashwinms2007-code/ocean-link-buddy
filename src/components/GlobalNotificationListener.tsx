@@ -8,23 +8,41 @@ import { setupMeshListener, SOSSignal, getDistance } from "@/services/sosService
  * 🌊 Background Notification Listener
  * Polling Interval: 10 minutes (Fuses Marine API data)
  * Real-time Mesh: Nearby SOS signals
- * Multimodal: Voice, Vibration, Sonner Toast
+ * Respects: mitra_notifications, mitra_voiceGuide settings
  */
 const GlobalNotificationListener: React.FC = () => {
   const { language, t } = useLanguage();
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Request Notification Permission on Mount
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission().then((permission) => {
+        if (permission === "granted") {
+          console.log("Maritime System Alerts Enabled.");
+        }
+      });
+    }
+  }, []);
+
   useEffect(() => {
     const checkSeaConditions = async () => {
+      // Respect notification setting
+      const notifEnabled = localStorage.getItem("mitra_notifications") !== "false";
+      if (!notifEnabled) return;
+
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(async (pos) => {
-          const { current } = await fetchMarineWeather(pos.coords.latitude, pos.coords.longitude);
-          
+          const { current } = await fetchMarineWeather(
+            pos.coords.latitude,
+            pos.coords.longitude
+          );
+
           if (current) {
             evaluateTelemetry(
               {
                 waveHeight: current.waveHeight,
-                windSpeed: 12.0, // Placeholder or fetch wind from forecast if needed
+                windSpeed: current.windSpeed ?? 12.0,
                 rain: 0.0,
               },
               language,
@@ -39,20 +57,28 @@ const GlobalNotificationListener: React.FC = () => {
     checkSeaConditions();
 
     // 2. Setup 10-minute interval polling
-    pollingIntervalRef.current = setInterval(checkSeaConditions, 600000); // 10 minutes
+    pollingIntervalRef.current = setInterval(checkSeaConditions, 600000);
 
     // 3. Setup Mesh SOS Listener (Immediate alert for nearby users)
     setupMeshListener((signal: SOSSignal) => {
-      // Re-fetch current location for distance calc
+      const notifEnabled = localStorage.getItem("mitra_notifications") !== "false";
+      if (!notifEnabled) return;
+
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition((pos) => {
-          const dist = getDistance(pos.coords.latitude, pos.coords.longitude, signal.lat, signal.lon);
-          
-          if (dist < 50) { // Alert if within 50km
+          const dist = getDistance(
+            pos.coords.latitude,
+            pos.coords.longitude,
+            signal.lat,
+            signal.lon
+          );
+
+          if (dist < 50) {
             triggerAlert(
               "🚨 NEARBY SOS",
               `Vessel in distress ${dist.toFixed(1)}km away. Please respond!`,
-              "SOS"
+              "SOS",
+              language
             );
           }
         });

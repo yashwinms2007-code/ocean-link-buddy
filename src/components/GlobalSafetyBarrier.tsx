@@ -12,10 +12,22 @@ const GlobalSafetyBarrier = () => {
   const [safety, setSafety] = useState<SafetyStatus | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [lastCheck, setLastCheck] = useState(0);
+  const [settingsEnabled, setSettingsEnabled] = useState(
+    localStorage.getItem("mitra_safetyAlerts") !== "false"
+  );
+
+  // Listen for settings changes in real-time
+  useEffect(() => {
+    const onSettingsChange = (e: any) => {
+      setSettingsEnabled(e.detail?.safetyAlerts !== false);
+    };
+    window.addEventListener("mitra-settings-change", onSettingsChange);
+    return () => window.removeEventListener("mitra-settings-change", onSettingsChange);
+  }, []);
 
   useEffect(() => {
     const checkSafety = async () => {
-      // Check every 5 minutes or on navigation
+      if (!settingsEnabled) return; // Respect setting
       if (Date.now() - lastCheck < 300000) return;
 
       if (navigator.geolocation) {
@@ -38,7 +50,8 @@ const GlobalSafetyBarrier = () => {
   }, [lastCheck]);
 
   const speakWarning = (text: string) => {
-    if (!('speechSynthesis' in window)) return;
+    const voiceEnabled = localStorage.getItem("mitra_voiceGuide") !== "false";
+    if (!voiceEnabled || !('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     const langMap: any = { en: "en-US", hi: "hi-IN", kn: "kn-IN" };
@@ -47,7 +60,7 @@ const GlobalSafetyBarrier = () => {
     toast.error("🚨 CRITICAL MARINE ALERT: Audio Briefing Initiated.");
   };
 
-  if (!showModal || !safety) return null;
+  if (!showModal || !safety || !settingsEnabled) return null;
 
   return (
     <div className="fixed inset-0 z-[2000] flex items-center justify-center p-6 bg-slate-950/90 backdrop-blur-2xl animate-in fade-in duration-500">

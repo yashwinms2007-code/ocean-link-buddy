@@ -1,18 +1,23 @@
 import { toast } from "sonner";
+import { Sun, Cloud, CloudRain, CloudLightning, CloudSnow, Wind, CloudFog, CircleHelp, LucideIcon } from "lucide-react";
 
 export interface MarineData {
   waveHeight: number;
   windWaveHeight: number;
   swellWaveHeight: number;
-  sst: number;
+  sst: number;              // Sea surface temp (for safety calcs)
+  temperature: number;      // Actual AIR temperature at 2m (°C)
   currentVelocity: number;
   wavePeriod: number;
   windSpeed: number;
-  windDirection: number;   // NEW — degrees 0-360
-  waveDirection: number;   // NEW — degrees 0-360
+  windDirection: number;
+  waveDirection: number;
   precipitation: number;
-  pressure: number;        // NEW — hPa
+  pressure: number;
+  humidity: number;
   timestamp: number;
+  weatherCode?: number;
+  isDay?: boolean;
 }
 
 export interface MarineForecast {
@@ -20,6 +25,7 @@ export interface MarineForecast {
   waveHeight: number;
   windSpeed: number;
   sst: number;
+  weatherCode?: number;
 }
 
 export interface SafetyStatus {
@@ -37,6 +43,18 @@ export interface SafetyStatus {
 }
 
 const CACHE_KEY = "mitra-marine-cache";
+
+// Map Open-Meteo WMO Codes to Lucide Icons & Description
+export const getWeatherCondition = (code: number = 0) => {
+  if (code === 0) return { label: "Clear", icon: Sun, color: "text-amber-500" };
+  if (code <= 3) return { label: "Partly Cloudy", icon: Cloud, color: "text-slate-400" };
+  if (code <= 48) return { label: "Foggy", icon: CloudFog, color: "text-slate-300" };
+  if (code <= 67) return { label: "Rainy", icon: CloudRain, color: "text-blue-500" };
+  if (code <= 77) return { label: "Snowy", icon: CloudSnow, color: "text-blue-200" };
+  if (code <= 82) return { label: "Heavy Rain", icon: CloudRain, color: "text-blue-600" };
+  if (code <= 99) return { label: "Thunderstorm", icon: CloudLightning, color: "text-primary" };
+  return { label: "Unknown", icon: CircleHelp, color: "text-slate-400" };
+};
 
 export const calculateMarineSafety = (data: MarineData, nextData?: MarineData): SafetyStatus => {
   const risks: SafetyStatus["risks"] = {
@@ -70,27 +88,26 @@ export const calculateMarineSafety = (data: MarineData, nextData?: MarineData): 
   if (isDanger) {
     return {
       status: "DANGER", score: 1, color: "red",
-      alert: "🚨 DANGER: HIGH RISK FOR NAVIGATION",
-      advice: `Severe ${data.waveHeight > 3 ? 'wave heights' : 'wind speeds'} detected. Stay in port until further notice.`,
+      alert: "🚨 DANGER: HIGH RISK",
+      advice: `Severe ${data.waveHeight > 3 ? 'wave heights' : 'wind speeds'} detected.`,
       trend, risks
     };
   } else if (isModerate) {
     return {
       status: "MODERATE", score: 3, color: "yellow",
-      alert: "⚠️ MODERATE: Caution Advised",
-      advice: "Small vessels should stay near coast. Monitor wave periods closely.",
+      alert: "⚠️ CAUTION",
+      advice: "Small vessels should stay near coast.",
       trend, risks
     };
   }
   return {
     status: "SAFE", score: 5, color: "green",
-    alert: "✅ SAFE: Sea conditions optimal",
-    advice: "Ideal for all fishing vessels. Favorable drift currents detected.",
+    alert: "✅ OPTIMAL",
+    advice: "Ideal conditions for fishing activity.",
     trend, risks
   };
 };
 
-/** Convert degrees to compass direction */
 export const degToCompass = (deg: number): string => {
   const dirs = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
   return dirs[Math.round(deg / 22.5) % 16];
@@ -99,21 +116,34 @@ export const degToCompass = (deg: number): string => {
 export const fetchMarineWeather = async (
   lat: number, lon: number
 ): Promise<{ current: MarineData; safety: SafetyStatus; forecast: MarineForecast[] }> => {
+  // ── COASTAL SANITIZER ──
+  // If user is inland (e.g. Mysuru/Bangalore), shift coordinates to the 
+  // nearest coast for the Marine API to return real ocean data.
+  const marineLat = lat;
+  const marineLon = lon > 74.85 ? 74.85 : lon; // Cap at Mangalore Coastline
+
   try {
-    // ── Fetch marine + atmosphere in parallel using `current` API for live data ──
-    const marineUrl  = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}` +
+    const marineUrl  = `https://marine-api.open-meteo.com/v1/marine?latitude=${marineLat}&longitude=${marineLon}` +
       `&current=wave_height,wind_wave_height,swell_wave_height,sea_surface_temperature,ocean_current_velocity,wave_period,wave_direction` +
       `&hourly=wave_height,wind_wave_height,swell_wave_height,sea_surface_temperature,ocean_current_velocity,wave_period` +
       `&timezone=auto`;
     const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
-      `&current=windspeed_10m,winddirection_10m,precipitation,surface_pressure` +
-      `&hourly=windspeed_10m,precipitation` +
+      `&current=temperature_2m,windspeed_10m,winddirection_10m,precipitation,surface_pressure,relativehumidity_2m,weather_code,is_day` +
+      `&hourly=temperature_2m,windspeed_10m,precipitation,weather_code,relativehumidity_2m` +
       `&timezone=auto`;
 
-    const [marineRes, weatherRes] = await Promise.all([fetch(marineUrl), fetch(weatherUrl)]);
+    const fetchWithTimeout = (url: string, ms: number = 8000) => {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), ms);
+      return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(id));
+    };
+
+    const [marineRes, weatherRes] = await Promise.all([
+      fetchWithTimeout(marineUrl), 
+      fetchWithTimeout(weatherUrl)
+    ]);
     const [marineJson, weatherJson] = await Promise.all([marineRes.json(), weatherRes.json()]);
 
-    // ── Use `current` object for real-time values ──
     const mc  = marineJson.current   || {};
     const wc  = weatherJson.current  || {};
     const mh  = marineJson.hourly    || {};
@@ -125,6 +155,7 @@ export const fetchMarineWeather = async (
       windWaveHeight: parseFloat((mc.wind_wave_height         ?? mh.wind_wave_height?.[idx]         ?? 0.8).toFixed(1)),
       swellWaveHeight:parseFloat((mc.swell_wave_height        ?? mh.swell_wave_height?.[idx]        ?? 0.5).toFixed(1)),
       sst:            parseFloat((mc.sea_surface_temperature  ?? mh.sea_surface_temperature?.[idx]  ?? 28.5).toFixed(1)),
+      temperature:    parseFloat((wc.temperature_2m           ?? wh.temperature_2m?.[idx]           ?? 30.0).toFixed(1)),
       currentVelocity:parseFloat((mc.ocean_current_velocity   ?? mh.ocean_current_velocity?.[idx]   ?? 0.3).toFixed(2)),
       wavePeriod:     parseFloat((mc.wave_period              ?? mh.wave_period?.[idx]              ?? 8).toFixed(1)),
       windSpeed:      parseFloat((wc.windspeed_10m            ?? wh.windspeed_10m?.[idx]            ?? 10).toFixed(1)),
@@ -132,10 +163,12 @@ export const fetchMarineWeather = async (
       waveDirection:  Math.round(mc.wave_direction            ?? 225),
       precipitation:  parseFloat((wc.precipitation            ?? wh.precipitation?.[idx]            ?? 0).toFixed(1)),
       pressure:       Math.round(wc.surface_pressure          ?? 1013),
-      timestamp:      Date.now(),
+      humidity:       Math.round(wc.relativehumidity_2m        ?? wh.relativehumidity_2m?.[idx]      ?? 75),
+      weatherCode:    wc.weather_code ?? 0,
+      isDay:          wc.is_day === 1,
+      timestamp: Date.now(),
     };
 
-    // +3 hour trend
     const ni = idx + 3;
     const nextData: MarineData = {
       ...current,
@@ -143,13 +176,14 @@ export const fetchMarineWeather = async (
       windSpeed:  wh.windspeed_10m?.[ni]  ?? current.windSpeed,
     };
 
-    const forecast: MarineForecast[] = (mh.time ?? [])
+    const forecast: MarineForecast[] = (wh.time ?? [])
       .slice(idx, idx + 24)
       .map((t: string, i: number) => ({
         time:       new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         waveHeight: mh.wave_height?.[idx + i]           ?? current.waveHeight,
         sst:        mh.sea_surface_temperature?.[idx + i] ?? current.sst,
         windSpeed:  wh.windspeed_10m?.[idx + i]         ?? current.windSpeed,
+        weatherCode: wh.weather_code?.[idx + i]         ?? 0,
       }));
 
     const safety = calculateMarineSafety(current, nextData);
@@ -160,14 +194,13 @@ export const fetchMarineWeather = async (
     console.warn("Marine API offline, loading cache...", error);
     const cached = localStorage.getItem(CACHE_KEY);
     if (cached) {
-      toast.info("Offline Mode: Showing last known sea state.");
       return JSON.parse(cached);
     }
     const mockCurrent: MarineData = {
       waveHeight: 1.2, windWaveHeight: 0.8, swellWaveHeight: 0.5,
-      sst: 28.5, currentVelocity: 0.3, wavePeriod: 8,
+      sst: 28.5, temperature: 31.0, currentVelocity: 0.3, wavePeriod: 8,
       windSpeed: 10, windDirection: 180, waveDirection: 225,
-      precipitation: 0, pressure: 1013, timestamp: Date.now(),
+      precipitation: 0, pressure: 1013, humidity: 75, timestamp: Date.now(),
     };
     return { current: mockCurrent, safety: calculateMarineSafety(mockCurrent), forecast: [] };
   }

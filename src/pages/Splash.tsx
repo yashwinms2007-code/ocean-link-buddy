@@ -1,46 +1,79 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import mitraLogo from "@/assets/mitra-logo.png";
-import { ArrowRight, Waves } from "lucide-react";
+import { motion } from "framer-motion";
 
 const Splash = () => {
   const navigate = useNavigate();
   const { t } = useLanguage();
 
+  // "Make it fast" — Auto-navigates to login after 1.8 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      navigate("/login");
+    }, 1800);
+    return () => clearTimeout(timer);
+  }, [navigate]);
+
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center px-8 text-center relative overflow-hidden">
-      {/* Animated Background Elements */}
-      <div className="absolute top-1/4 -left-20 w-64 h-64 bg-primary/20 rounded-full blur-[120px] animate-pulse" />
-      <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-blue-600/10 rounded-full blur-[150px] animate-pulse delay-700" />
+    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-10 text-center relative overflow-hidden">
+      {/* Background Orbs */}
+      <div className="absolute top-1/4 -left-20 w-80 h-80 bg-primary/5 rounded-full blur-[100px]" />
+      <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-blue-50/50 rounded-full blur-[100px]" />
       
-      <div className="relative z-10 mb-10">
-        <div className="p-8 glass-dark rounded-[3.5rem] border border-white/10 shadow-2xl backdrop-blur-2xl">
-           <img src={mitraLogo} alt="Mitra" width={120} height={120} className="drop-shadow-[0_0_20px_rgba(14,165,233,0.5)]" />
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="relative z-10 space-y-12"
+      >
+        {/* REFINED LOGO CONTAINER (WHITE/GLASS FOR TEAL VISIBILITY) */}
+        <div className="w-44 h-44 bg-white rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] flex items-center justify-center mx-auto border-2 border-slate-100 p-8">
+           <motion.img 
+             initial={{ scale: 0.8, opacity: 0 }}
+             animate={{ scale: 1, opacity: 1 }}
+             transition={{ delay: 0.3 }}
+             src={mitraLogo} 
+             alt="Mitra Official Logo" 
+             className="w-full h-full object-contain drop-shadow-xl" 
+           />
         </div>
-      </div>
 
-      <div className="relative z-10 space-y-4">
-        <h1 className="text-5xl font-black text-white tracking-tighter uppercase mb-2 animate-in fade-in slide-in-from-bottom-5 duration-700">
-          {t("appName")}
-        </h1>
-        <p className="text-primary text-xs font-black tracking-[0.4em] uppercase mb-12 animate-in fade-in slide-in-from-bottom-5 duration-700 delay-200">
-          {t("tagline")}
-        </p>
-        
-        <button
-          onClick={() => navigate("/login")}
-          className="group relative bg-primary text-white font-black text-xs uppercase tracking-[0.2em] px-12 py-5 rounded-2xl shadow-[0_20px_50px_rgba(14,165,233,0.3)] hover:scale-105 active:scale-95 transition-all overflow-hidden"
-        >
-          <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-          <span className="relative flex items-center gap-3">
-             {t("letsStart")} <ArrowRight size={18} />
-          </span>
-        </button>
-      </div>
+        <div className="space-y-4">
+           <motion.h1 
+             initial={{ opacity: 0, y: 10 }}
+             animate={{ opacity: 1, y: 0 }}
+             transition={{ delay: 0.5 }}
+             className="text-7xl font-black text-slate-950 tracking-tighter uppercase leading-none"
+           >
+             mitra
+           </motion.h1>
+           <motion.div 
+             initial={{ width: 0 }}
+             animate={{ width: "120px" }}
+             transition={{ delay: 0.7, duration: 0.6 }}
+             className="h-2.5 bg-primary mx-auto rounded-full shadow-sm" 
+           />
+           <motion.p 
+             initial={{ opacity: 0 }}
+             animate={{ opacity: 1 }}
+             transition={{ delay: 1.0 }}
+             className="text-slate-500 text-[16px] font-black tracking-[0.5em] uppercase mt-4"
+           >
+             Professional Marine OS
+           </motion.p>
+        </div>
+      </motion.div>
 
-      <div className="absolute bottom-10 flex flex-col items-center gap-2 opacity-30">
-         <Waves className="text-white animate-bounce" size={24} />
-         <span className="text-[8px] font-black uppercase tracking-[0.5em] text-white">Mangalore Marine Tech</span>
+      {/* Progress bar to signal speed */}
+      <div className="absolute bottom-12 left-1/2 -translate-x-1/2 w-48 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+         <motion.div 
+           initial={{ width: 0 }}
+           animate={{ width: "100%" }}
+           transition={{ duration: 1.8, ease: "linear" }}
+           className="h-full bg-primary"
+         />
       </div>
     </div>
   );

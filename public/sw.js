@@ -4,14 +4,10 @@
 importScripts("https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js");
 
-const CACHE_NAME = "mitra-offline-v2";
+const CACHE_NAME = "mitra-award-winning-v1";
 const STATIC_ASSETS = [
-  "/",
-  "/index.html",
-  "/manifest.json",
   "/favicon.ico",
-  "/src/main.tsx",
-  "/src/App.tsx",
+  "/mitra-logo.png",
 ];
 
 // Initialize Firebase in Background
@@ -48,10 +44,17 @@ self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
 
-// Activate event: Clean up old caches
+// Activate event: Aggressive cache purge
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))))
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys.map((k) => {
+          console.log("[SW] Purging old cache:", k);
+          return caches.delete(k);
+        })
+      );
+    })
   );
   self.clients.claim();
 });

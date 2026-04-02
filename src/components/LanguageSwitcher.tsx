@@ -10,15 +10,15 @@ const LanguageSwitcher = () => {
   const { language, setLanguage } = useLanguage();
 
   return (
-    <div className="flex gap-1 rounded-2xl bg-white/5 p-1 border border-white/10">
+    <div className="flex gap-1.5 rounded-full bg-slate-100 p-1 border border-slate-200">
       {(Object.keys(langLabels) as Language[]).map((lang) => (
         <button
           key={lang}
           onClick={() => setLanguage(lang)}
-          className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${
+          className={`px-5 py-2 rounded-full text-[10px] font-black transition-all ${
             language === lang
-              ? "bg-primary text-white shadow-lg"
-              : "text-slate-500 hover:text-slate-300"
+              ? "bg-slate-900 text-white shadow-lg scale-105"
+              : "text-slate-400 hover:text-slate-900 hover:bg-white"
           }`}
         >
           {langLabels[lang]}
