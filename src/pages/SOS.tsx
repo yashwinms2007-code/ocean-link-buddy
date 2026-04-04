@@ -211,7 +211,14 @@ const SOS = () => {
           <ArrowLeft size={20} />
         </button>
         <div className="flex-1">
-          <h1 className="text-xl font-black tracking-tight text-white">{t("sosEmergency")}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-black tracking-tight text-white">{t("sosEmergency")}</h1>
+            {!isOnline && (
+              <div className="px-2 py-0.5 bg-red-500/20 border border-red-500/30 rounded-md">
+                <span className="text-[8px] font-black text-red-400 uppercase tracking-widest">OFFLINE</span>
+              </div>
+            )}
+          </div>
           <div className="flex items-center gap-2 mt-0.5">
             <div className={`w-1.5 h-1.5 rounded-full ${isOnline ? "bg-green-400" : "bg-yellow-400"} animate-pulse`} />
             <span className="text-white/70 text-[9px] font-black uppercase tracking-widest">{priorityLabel}</span>

@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { getAllNotifications } from "@/services/notificationStorage";
 
 const TopHeader = () => {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -31,7 +32,7 @@ const TopHeader = () => {
       <div className="flex items-center gap-4 pointer-events-auto">
         <div className="super-glass p-2.5 px-8 rounded-full flex items-center gap-3 border border-emerald-500/10">
            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_12px_rgba(16,185,129,0.5)]" />
-           <span className="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em] leading-none">SYSTEM ACTIVE</span>
+           <span className="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em] leading-none">{t("systemActive")}</span>
         </div>
       </div>
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -69,6 +69,57 @@ const InjectDarkCSS = () => {
   return null;
 };
 
+// ── Radar View for Offline Emergency ───────────────────────────────────────────
+const RadarView = ({ center, markers, nearbySOS }: { center: [number, number], markers: any[], nearbySOS: any[] }) => {
+  return (
+    <div className="absolute inset-0 bg-[#050d1a] border-4 border-red-500/20 rounded-[2rem] overflow-hidden flex items-center justify-center pointer-events-none z-[1000]">
+      {/* Background Grid */}
+      <svg className="absolute inset-0 w-full h-full opacity-20" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#0ea5e9" strokeWidth="0.5" />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#grid)" />
+        <circle cx="50%" cy="50%" r="100" fill="none" stroke="#0ea5e9" strokeWidth="1" strokeDasharray="5,5" />
+        <circle cx="50%" cy="50%" r="200" fill="none" stroke="#0ea5e9" strokeWidth="1" strokeDasharray="5,5" />
+        <circle cx="50%" cy="50%" r="300" fill="none" stroke="#0ea5e9" strokeWidth="1" strokeDasharray="5,5" />
+      </svg>
+      
+      {/* Scanning Line */}
+      <div className="absolute w-[200%] h-[2px] bg-gradient-to-r from-transparent via-red-500/30 to-transparent animate-[spin_4s_linear_infinite]" />
+      
+      {/* Offline Alert Text */}
+      <div className="absolute top-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
+         <div className="px-4 py-1 bg-red-500/20 border border-red-500/30 rounded-full">
+            <span className="text-[10px] font-black text-red-500 uppercase tracking-widest">OFFLINE RADAR MODE ACTIVE</span>
+         </div>
+         <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest text-center">Charts unavailable — using tactical GPS grid</p>
+      </div>
+
+      <div className="relative z-10 flex flex-col items-center gap-2">
+         <div className="text-4xl">🚢</div>
+         <div className="flex flex-col items-center">
+            <p className="text-white font-black text-sm uppercase tracking-tighter">Your Vessel</p>
+            <p className="text-[10px] text-slate-500 font-mono">{center[0].toFixed(4)}°N, {center[1].toFixed(4)}°E</p>
+         </div>
+      </div>
+
+      {nearbySOS.map((sos, i) => (
+         <div key={i} className="absolute animate-pulse" style={{ 
+            top: `${50 + (sos.lat - center[0]) * 1000}%`, 
+            left: `${50 + (sos.lon - center[1]) * 1000}%` 
+         }}>
+            <div className="flex flex-col items-center">
+               <span className="text-2xl">🚨</span>
+               <span className="text-[8px] font-black text-red-500 uppercase">SOS</span>
+            </div>
+         </div>
+      ))}
+    </div>
+  );
+};
+
 interface Zone { position: [number, number]; radius: number; color: string; label: string; }
 
 export interface MarineMapProps {
@@ -90,6 +141,19 @@ const MarineMap: React.FC<MarineMapProps> = ({
   route = [], satellitePoints = [],
   activeLayer = 'none', showNautical = true,
 }) => {
+  const [isOnline, setIsOnline] = React.useState(navigator.onLine);
+
+  useEffect(() => {
+    const onOnline = () => setIsOnline(true);
+    const onOffline = () => setIsOnline(false);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
+    return () => {
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
+    };
+  }, []);
+
   const getPointColor = (point: SatellitePoint) => {
     if (activeLayer === 'sst')
       return point.sst > 30 ? '#ef4444' : point.sst > 26 ? '#fbbf24' : '#3b82f6';
@@ -109,32 +173,29 @@ const MarineMap: React.FC<MarineMapProps> = ({
 
   return (
     <div style={{ height, width: '100%', position: 'relative', overflow: 'hidden', borderRadius: '1.5rem', background: '#050d1a' }}>
+      {!isOnline && <RadarView center={center} markers={markers} nearbySOS={nearbySOS} />}
+      
       <MapContainer
         center={center}
         zoom={zoom}
         scrollWheelZoom={true}
         zoomControl={false}
+        className={!isOnline ? 'invisible' : ''}
         style={{ height: '100%', width: '100%', background: '#050d1a' }}
       >
         <InjectDarkCSS />
         <CenterMap center={center} zoom={zoom} />
-
-        {/* ── LAYER 1: CartoDB Dark Matter (deepest dark, no label bleed) ── */}
         <TileLayer
           attribution='&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
           url="https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png"
           maxZoom={19}
         />
-
-        {/* ── LAYER 2: Dark labels on top ── */}
         <TileLayer
           url="https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png"
           maxZoom={19}
           opacity={0.7}
           pane="shadowPane"
         />
-
-        {/* ── LAYER 3: OpenSeaMap Nautical overlay ── */}
         {showNautical && (
           <TileLayer
             attribution='&copy; <a href="https://www.openseamap.org">OpenSeaMap</a>'
@@ -143,7 +204,6 @@ const MarineMap: React.FC<MarineMapProps> = ({
           />
         )}
 
-        {/* ── Scientific heatmap circles ── */}
         {activeLayer !== 'none' && satellitePoints.map((point, idx) => (
           <Circle
             key={`sat-${idx}-${activeLayer}`}
@@ -174,16 +234,22 @@ const MarineMap: React.FC<MarineMapProps> = ({
                   <span style={{ fontWeight: 900, color: point.confidence === 'HIGH' ? '#10b981' : point.confidence === 'MEDIUM' ? '#fbbf24' : '#94a3b8' }}>
                     {point.confidence}
                   </span>
-                  {point.frontDetected && (
-                    <><span style={{ color: '#64748b' }}>🌊 Front</span><span style={{ color: '#f97316', fontWeight: 900 }}>DETECTED</span></>
-                  )}
+                  <span style={{ color: '#64748b' }}>🛡 Safety</span>
+                  <span style={{ fontWeight: 900, color: point.safetyScore >= 80 ? '#10b981' : '#f59e0b' }}>
+                    {point.safetyScore}%
+                  </span>
+                  <span style={{ color: '#64748b' }}>📍 Zone</span>
+                  <span style={{ fontWeight: 800 }}>{point.zoneName}</span>
+                </div>
+                <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.1)', fontSize: '9px' }}>
+                  <p style={{ color: '#94a3b8', fontStyle: 'italic', marginBottom: '6px' }}>"{point.insight}"</p>
+                  <p style={{ color: '#0ea5e9', fontWeight: 800 }}>🐟 Species: {point.predictedSpecies.join(', ')}</p>
                 </div>
               </div>
             </Popup>
           </Circle>
         ))}
 
-        {/* ── Nearby SOS Signals ── */}
         {nearbySOS.map((sos, idx) => (
           <React.Fragment key={`sos-${idx}`}>
             <Circle
@@ -201,7 +267,6 @@ const MarineMap: React.FC<MarineMapProps> = ({
           </React.Fragment>
         ))}
 
-        {/* ── Fish Zone Circles ── */}
         {zones.map((zone, idx) => (
           <Circle
             key={`zone-${idx}`}
@@ -213,7 +278,6 @@ const MarineMap: React.FC<MarineMapProps> = ({
           </Circle>
         ))}
 
-        {/* ── GPS Trail ── */}
         {route.length > 1 && (
           <Polyline
             positions={route}
@@ -221,7 +285,6 @@ const MarineMap: React.FC<MarineMapProps> = ({
           />
         )}
 
-        {/* ── Vessel / Point Markers ── */}
         {markers.map((marker, idx) => (
           <React.Fragment key={`marker-${idx}`}>
             {marker.isSOS ? (

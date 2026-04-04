@@ -14,7 +14,8 @@ export interface SOSSignal {
 const MESH_CHANNEL = "mitra_fisherman_mesh";
 const meshChannel = new BroadcastChannel(MESH_CHANNEL);
 const senderId = Math.random().toString(36).substring(7);
-const SOS_QUEUE_KEY = "mitra_sos_delivery_queue";
+const SOS_QUEUE_KEY = "mitra_sos_delivery_queue_v2";
+const SOS_SENT_KEY = "mitra_sos_sent_history";
 
 // ─── Dead Reckoning ────────────────────────────────────────────────────────
 const toRadians = (deg: number) => deg * (Math.PI / 180);
@@ -47,21 +48,32 @@ const enqueueSOSForDelivery = (data: SOSSignal) => {
 };
 
 const flushSOSQueue = async () => {
-  const queue: SOSSignal[] = JSON.parse(localStorage.getItem(SOS_QUEUE_KEY) || "[]");
+  const queueRaw = localStorage.getItem(SOS_QUEUE_KEY);
+  if (!queueRaw) return;
+  
+  let queue: SOSSignal[] = JSON.parse(queueRaw);
   if (queue.length === 0) return;
+  
+  console.log(`[SOS] Attempting to flush ${queue.length} queued signals...`);
+  const remaining: SOSSignal[] = [];
   let delivered = 0;
+
   for (const sos of queue) {
     try {
       await sendSOSToServer(sos);
       delivered++;
+      // Log to sent history
+      const history: SOSSignal[] = JSON.parse(localStorage.getItem(SOS_SENT_KEY) || "[]");
+      history.push({ ...sos, timestamp: Date.now() });
+      localStorage.setItem(SOS_SENT_KEY, JSON.stringify(history.slice(-10))); // keep last 10
     } catch (_) {
-      // Stay in queue
+      remaining.push(sos);
     }
   }
+
+  localStorage.setItem(SOS_QUEUE_KEY, JSON.stringify(remaining));
   if (delivered > 0) {
-    const remaining = queue.slice(delivered);
-    localStorage.setItem(SOS_QUEUE_KEY, JSON.stringify(remaining));
-    toast.success(`${delivered} queued SOS signal(s) delivered to authorities.`);
+    toast.success(`RECOVERY: ${delivered} Emergency signal(s) successfully synced with authorities.`);
   }
 };
 

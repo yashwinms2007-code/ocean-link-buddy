@@ -21,6 +21,17 @@ const Dashboard = () => {
   const [forecast, setForecast] = useState<MarineForecast[]>([]);
   const [locationName, setLocationName] = useState<string>("");
   const [safety, setSafety] = useState<any>(null);
+  const [captainName, setCaptainName] = useState<string>("Captain");
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("mitra_vessel_data");
+      if (saved) {
+        const data = JSON.parse(saved);
+        if (data.ownerName) setCaptainName(data.ownerName);
+      }
+    } catch(e) {}
+  }, []);
 
   useEffect(() => {
     const loadWeather = async () => {
@@ -142,7 +153,7 @@ const Dashboard = () => {
                    className="text-4xl font-black tracking-tighter leading-tight"
                  >
                     {t("welcomeBack")}<br />
-                    Captain Rajan 👋
+                    {captainName} 👋
                  </motion.h1>
                  
                  <div className="flex items-center gap-2.5 py-2.5 px-5 bg-slate-950 text-white rounded-xl w-max shadow-lg">

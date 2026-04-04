@@ -80,3 +80,16 @@
 .custom-scrollbar::-webkit-scrollbar-thumb {
   @apply bg-slate-200 rounded-full;
 }
+
+/* ── HOTSPOT ANIMATIONS ── */
+@keyframes hotspot-pulse {
+  0% { fill-opacity: 0.5; stroke-width: 3; }
+  50% { fill-opacity: 0.8; stroke-width: 6; }
+  100% { fill-opacity: 0.5; stroke-width: 3; }
+}
+
+.hotspot-pulse {
+  animation: hotspot-pulse 2s infinite ease-in-out;
+  stroke: rgba(14, 165, 233, 0.6);
+  pointer-events: auto;
+}

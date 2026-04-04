@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import {
   ArrowLeft, ShoppingCart, Phone, Tag, MapPin, Package,
   ShieldCheck, Zap, TrendingUp, Info, Search, Trash2,
-  MessageCircle, Plus, Fish, Clock, CheckCircle2, ChevronDown, X
+  MessageCircle, Plus, Fish, Clock, CheckCircle2, ChevronDown, X,
+  Sparkles, TrendingDown, Activity
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -214,6 +215,22 @@ const FishMarket = () => {
           {/* ══════════════ BUY TAB ══════════════ */}
           {activeTab === "buy" && (
             <motion.div key="buy" initial={{ opacity: 0, x: -15 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 15 }} className="space-y-5">
+
+              {/* AI Market Insights Ticker */}
+              <div className="bg-gradient-to-r from-teal-500/10 to-blue-500/10 rounded-2xl p-4 border border-teal-500/20 shadow-inner overflow-hidden relative">
+                 <div className="absolute top-0 right-0 p-2 opacity-10">
+                    <Activity size={60} className="text-teal-500" />
+                 </div>
+                 <div className="flex items-center gap-3 relative z-10">
+                    <div className="w-8 h-8 rounded-full bg-teal-500/20 flex items-center justify-center text-teal-400 border border-teal-500/30 flex-shrink-0 animate-pulse">
+                       <Sparkles size={14} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                       <p className="text-[10px] font-black uppercase tracking-widest text-teal-400 mb-0.5">Live AI Market Insight</p>
+                       <p className="text-xs text-slate-300 font-bold truncate">Premium grade <span className="text-white">Tiger Prawn</span> demand is soaring. Expected price spike: +15% next 12h.</p>
+                    </div>
+                 </div>
+              </div>
 
               {/* Search bar */}
               <div className="flex gap-3">
@@ -491,6 +508,23 @@ const FishMarket = () => {
                       </div>
                     </Field>
                   </div>
+
+                  {/* AI Price Recommendation */}
+                  <AnimatePresence>
+                    {form.category && form.species.length > 2 && (
+                       <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="overflow-hidden">
+                          <div className="flex items-center gap-3 p-3 bg-teal-500/10 border border-teal-500/20 rounded-xl mt-1">
+                             <TrendingUp size={16} className="text-teal-400 flex-shrink-0" />
+                             <div>
+                                <p className="text-[10px] font-black text-teal-400 uppercase tracking-widest leading-none">AI Price Suggestion</p>
+                                <p className="text-[11px] font-bold text-slate-300 mt-1">
+                                  Based on live regional demand, <strong className="text-white">₹{form.category === 'Prawn' ? 620 : form.category === 'Crab' ? 880 : 250}/kg</strong> will secure a sale within 2 hours.
+                                </p>
+                             </div>
+                          </div>
+                       </motion.div>
+                    )}
+                  </AnimatePresence>
 
                   {/* Description */}
                   <Field label={t("descTarget")}>

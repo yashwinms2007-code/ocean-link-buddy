@@ -5,12 +5,13 @@ import "./index.css";
 createRoot(document.getElementById("root")!).render(<App />);
 
 
-// Service Worker Disabled to clear legacy caching
-console.log("ServiceWorker Registration Disabled for Mitra V2 Redesign Sync.");
+// Service Worker Registration for PWA Support
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.getRegistrations().then(registrations => {
-    for (let registration of registrations) {
-      registration.unregister();
-    }
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").then((reg) => {
+      console.log("Mitra ServiceWorker registered:", reg.scope);
+    }).catch((err) => {
+      console.error("Mitra ServiceWorker registration failed:", err);
+    });
   });
 }

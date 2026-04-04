@@ -79,6 +79,12 @@ const Chatbot = () => {
   const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
+    if (window.speechSynthesis) {
+      // Pre-load voices to ensure they are available when speak() is called
+      window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+      window.speechSynthesis.getVoices();
+    }
+    
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SpeechRecognition) {
       recognitionRef.current = new SpeechRecognition();
@@ -92,9 +98,15 @@ const Chatbot = () => {
         setIsListening(false);
         handleSend(transcript);
       };
-      recognitionRef.current.onerror = () => {
+      recognitionRef.current.onerror = (e: any) => {
         setIsListening(false);
-        toast.error("Voice link intermittent. Try again.");
+        if (e.error === 'not-allowed') {
+          toast.error("Microphone access denied. Please allow in browser settings.");
+        } else if (e.error === 'network') {
+          toast.error("Network required for voice recognition.");
+        } else {
+          toast.error("Voice link intermittent. Please try typing your query.");
+        }
       };
       recognitionRef.current.onend = () => setIsListening(false);
     }
@@ -110,11 +122,18 @@ const Chatbot = () => {
     if (isListening) {
       recognitionRef.current?.stop();
     } else {
-      if (!recognitionRef.current) { toast.error("Speech engine not available."); return; }
+      if (!recognitionRef.current) { 
+        toast.error("Speech recognition is not fully supported in this browser. Please use the text input."); 
+        return; 
+      }
       stopSpeaking();
-      recognitionRef.current.start();
-      setIsListening(true);
-      toast.info("🎙️ Listening...");
+      try {
+        recognitionRef.current.start();
+        setIsListening(true);
+        toast.info("🎙️ Listening...");
+      } catch (err) {
+        toast.error("Please allow microphone permissions to use voice search.");
+      }
     }
   };
 
@@ -126,9 +145,21 @@ const Chatbot = () => {
     const langMap: Record<Language, string> = { en: "en-US", hi: "hi-IN", kn: "kn-IN" };
     utterance.lang = langMap[language];
     utterance.rate = 0.95;
+    
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) {
+      // Fallback to English if native regional voice isn't installed locally
+      const bestVoice = voices.find(v => v.lang.startsWith(utterance.lang.split('-')[0])) || voices.find(v => v.lang.startsWith('en')) || voices[0];
+      if (bestVoice) utterance.voice = bestVoice;
+    }
+
     utterance.onstart = () => setIsSpeaking(true);
     utterance.onend = () => setIsSpeaking(false);
-    window.speechSynthesis.speak(utterance);
+    
+    // Slight delay fixes Chrome text-to-speech bug on direct load
+    setTimeout(() => {
+      window.speechSynthesis.speak(utterance);
+    }, 50);
   };
 
   const stopSpeaking = () => {
@@ -176,7 +207,7 @@ const Chatbot = () => {
         fetchMarineWeather(lat, lon),
         fetchSatelliteData(lat, lon)
       ]);
-      const satStats = getOceanStats(satResponse);
+      const satStats = getOceanStats(satResponse.points);
       const lowerMsg = finalMsg.toLowerCase();
 
       let responseText = "";

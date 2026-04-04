@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import MarineMap from "@/components/MarineMap";
 import { toast } from "sonner";
-import { fetchSatelliteData, getOceanStats, SatellitePoint, OceanStats } from "@/services/oceanDataService";
+import { fetchSatelliteData, getOceanStats, SatellitePoint, OceanStats, PFZData } from "@/services/oceanDataService";
 import { calculateDeadReckoning } from "@/services/sosService";
 import { fetchMarineWeather, MarineData, degToCompass } from "@/services/marineWeatherService";
 import { motion } from "framer-motion";
@@ -33,14 +33,14 @@ const SeaMap = () => {
     const loadData = async () => {
       const { current } = await fetchMarineWeather(coords.lat, coords.lng);
       setWeather(current);
-      const data = await fetchSatelliteData(coords.lat, coords.lng);
-      setSatData(data);
+      const data: PFZData = await fetchSatelliteData(coords.lat, coords.lng);
+      setSatData(data.points);
 
       if (isSOSLink) {
         toast.error("DIRE EMERGENCY SIGNAL: Analyzing rescue coordinates...", { duration: 6000 });
       }
-      if (isOffline) {
-        toast.warning("OFFLINE MODE: Displaying cached coastal telemetry.");
+      if (isOffline || data.isFromCache) {
+        toast.warning(data.isFromCache ? "CACHED DATA: Using offline coastal telemetry." : "OFFLINE MODE: Displaying cached coastal telemetry.");
       }
     };
     loadData();
