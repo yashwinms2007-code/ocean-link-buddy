@@ -274,7 +274,7 @@ const SOS = () => {
   };
 
   const priorityColor = priority === "critical" ? "bg-red-700" : priority === "high" ? "bg-red-600" : priority === "medium" ? "bg-orange-600" : "bg-slate-900/50 backdrop-blur-xl border-b border-white/10";
-  const priorityLabel = priority === "critical" ? "🔴 CRITICAL — ESCALATING ALL CHANNELS" : priority === "high" ? "🚨 HIGH — MULTI-CHANNEL SOS ACTIVE" : priority === "medium" ? "⚠️ MEDIUM — ALERTING NEARBY VESSELS" : "STANDBY";
+  const priorityLabel = priority === "critical" ? "🔴 " + t("activeAlertCritical") : priority === "high" ? "🚨 " + t("emergencyAlerts") : priority === "medium" ? "⚠️ " + t("cautionMonitoring") : "STANDBY";
 
   return (
     <div className={`flex flex-col min-h-screen transition-colors duration-200 ${flash && status === "sent" ? "bg-red-950/60" : "bg-transparent"}`}>
@@ -419,8 +419,8 @@ const SOS = () => {
                     <Radio size={24} className="text-white" />
                   </div>
                   <div>
-                    <h3 className="text-white font-black text-sm uppercase tracking-tight">Ship Radio Bridge</h3>
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Digital-over-Radio waves</p>
+                    <h3 className="text-white font-black text-sm uppercase tracking-tight">{t("shipRadioBridge")}</h3>
+                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{t("tagline")}</p>
                   </div>
                 </div>
                 {isRadioBroadcasting && (
@@ -434,7 +434,7 @@ const SOS = () => {
 
               <div className="space-y-4 relative z-10 text-center">
                 <div className="flex gap-3 px-2 py-4 bg-black/40 rounded-2xl border border-white/5 items-center justify-center">
-                   <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.2em]">Hold Phone near VHF Radio Mic & Press PTT</p>
+                   <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.2em]">{t("vhfStep1")}</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -445,7 +445,7 @@ const SOS = () => {
                   >
                     <Activity size={24} className="text-white" />
                     <span className="text-[9px] font-black uppercase text-white tracking-widest">
-                      {isRadioBroadcasting ? 'Broadcasting...' : 'Digital Burst'}
+                      {isRadioBroadcasting ? t("syncing") : t("digitalBurst")}
                     </span>
                   </button>
 
@@ -455,7 +455,7 @@ const SOS = () => {
                   >
                     <Volume2 size={24} className="text-orange-400" />
                     <span className="text-[9px] font-black uppercase text-white tracking-widest">
-                      {maydayStep > 0 ? `Step ${maydayStep}/4` : 'Voice Mayday'}
+                      {maydayStep > 0 ? `Step ${maydayStep}/4` : t("voiceMayday")}
                     </span>
                   </button>
                 </div>
@@ -467,7 +467,7 @@ const SOS = () => {
                   >
                     <div className={`w-2 h-2 rounded-full ${isRadioListening ? 'bg-green-400 animate-pulse' : 'bg-slate-600'}`} />
                     <span className="text-[10px] uppercase tracking-widest font-black">
-                      {isRadioListening ? 'Receiver Active: Monitoring Radio' : 'Activate Radio Receiver'}
+                      {isRadioListening ? t("listenIncoming") : t("radioReceiver")}
                     </span>
                   </button>
                 </div>
@@ -481,7 +481,7 @@ const SOS = () => {
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <Navigation size={18} className="text-red-400 animate-bounce" />
-                  <span className="text-white font-black text-sm">Rescue Coordinates</span>
+                  <span className="text-white font-black text-sm">{t("rescueTarget")}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">
@@ -512,7 +512,7 @@ const SOS = () => {
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 w-full py-3 bg-primary/10 text-primary rounded-2xl border border-primary/20 text-[10px] font-black uppercase tracking-widest hover:bg-primary/20 transition-all"
               >
-                <Globe size={14} /> Open in Google Maps
+                <Globe size={14} /> {t("openGoogleMaps")}
               </a>
             </div>
 
@@ -538,7 +538,7 @@ const SOS = () => {
               onClick={handleCancel}
               className="w-full py-6 glass-dark text-slate-400 font-black rounded-[3rem] border border-white/10 hover:bg-red-600/10 hover:text-red-400 hover:border-red-500/30 transition-all uppercase tracking-[0.3em] text-xs"
             >
-              Deactivate Emergency Alert
+              {t("cancel")}
             </button>
           </div>
         )}

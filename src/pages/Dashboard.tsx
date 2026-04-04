@@ -110,11 +110,11 @@ const Dashboard = () => {
   const currentCondition = getWeatherCondition(weather?.weatherCode);
 
   const telemetry = [
-    { label: "Temperature", value: weather?.temperature ?? "--", unit: "°C", icon: Thermometer, color: "text-red-500" },
+    { label: t("temperature"), value: weather?.temperature ?? "--", unit: "°C", icon: Thermometer, color: "text-red-500" },
     { label: t("windSpeed"), value: weather?.windSpeed ?? "--", unit: "km/h", icon: Wind, color: "text-primary" },
-    { label: "Sea State", value: (weather?.waveHeight ?? 0) < 1.2 ? "Calm" : "Moderate", unit: "", icon: Waves, color: "text-blue-500" },
-    { label: "Humidity", value: weather?.humidity ?? "--", unit: "%", icon: Droplets, color: "text-amber-500" },
-    { label: "Rainfall", value: weather?.precipitation ?? "--", unit: "mm", icon: CloudRain, color: "text-blue-400" },
+    { label: t("seaState"), value: (weather?.waveHeight ?? 0) < 1.2 ? t("calm") : t("moderate"), unit: "", icon: Waves, color: "text-blue-500" },
+    { label: t("humidity"), value: weather?.humidity ?? "--", unit: "%", icon: Droplets, color: "text-amber-500" },
+    { label: t("rainfall"), value: weather?.precipitation ?? "--", unit: "mm", icon: CloudRain, color: "text-blue-400" },
   ];
 
   return (
@@ -159,7 +159,7 @@ const Dashboard = () => {
                  <div className="flex items-center gap-2.5 py-2.5 px-5 bg-slate-950 text-white rounded-xl w-max shadow-lg">
                     <MapPin size={16} fill="currentColor" className={locationName && locationName !== "Locating..." ? "text-emerald-400" : "text-primary"} />
                     <span className="text-[12px] font-black uppercase tracking-widest leading-none">
-                      {locationName === "Locating..." ? "Syncing Satellites..." : `LOCKED: ${locationName}`}
+                      {locationName === "Locating..." ? t("syncing") : `${t("locked")}: ${locationName}`}
                     </span>
                  </div>
               </div>
@@ -185,9 +185,9 @@ const Dashboard = () => {
       {/* ── WEATHER OUTLOOK ── */}
       <div className="px-6 space-y-5">
          <div className="flex items-center justify-between px-6">
-            <h3 className="text-[13px] font-black text-slate-400 uppercase tracking-[0.4em]">Weather Outlook</h3>
+            <h3 className="text-[13px] font-black text-slate-400 uppercase tracking-[0.4em]">{t("weatherOutlook")}</h3>
             <div className="flex items-center gap-2 text-[11px] font-black text-slate-300 uppercase tracking-widest">
-               <Clock size={12} /> Next 8 Hours
+               <Clock size={12} /> {t("next8Hours")}
             </div>
          </div>
          
@@ -249,7 +249,7 @@ const Dashboard = () => {
             <h3 className="text-[12px] font-black text-slate-900 uppercase tracking-[0.25em] flex items-center gap-3">
                <AlertTriangle size={18} className="text-red-500 animate-pulse" /> {t("emergencyAlerts")}
             </h3>
-            <button onClick={() => navigate("/notifications")} className="text-[12px] font-black text-primary uppercase tracking-widest hover:underline">History</button>
+            <button onClick={() => navigate("/notifications")} className="text-[12px] font-black text-primary uppercase tracking-widest hover:underline">{t("history")}</button>
          </div>
          
          {safety && safety.status !== "SAFE" ? (
@@ -265,7 +265,7 @@ const Dashboard = () => {
               <div className="flex-1 min-w-0">
                  <h4 className="text-lg font-black text-slate-900 leading-none">{safety.alert}</h4>
                  <p className={`text-[12px] font-black uppercase tracking-widest mt-2 leading-none ${safety.status === "DANGER" ? "text-red-500" : "text-amber-600"}`}>
-                   {safety.status === "DANGER" ? "Active Alert • Critical" : "Caution • Monitoring"}
+                   {safety.status === "DANGER" ? t("activeAlertCritical") : t("cautionMonitoring")}
                  </p>
                  <p className="text-[10px] text-slate-400 mt-2 font-bold truncate">{safety.advice}</p>
               </div>
@@ -274,12 +274,12 @@ const Dashboard = () => {
          ) : (
            <div className="bg-slate-50 p-8 rounded-[3rem] border border-dashed border-slate-200 flex items-center justify-between">
               <div className="space-y-2">
-                 <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">No Active Alerts</p>
-                 <p className="text-[9px] text-slate-300 font-bold">Scanning coastal telemetry...</p>
+                 <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{t("noListings")}</p>
+                 <p className="text-[9px] text-slate-300 font-bold">{t("scanningTelemetry")}</p>
               </div>
               <div className="text-right">
-                 <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest leading-none">Sync Status</p>
-                 <p className="text-[12px] font-black text-emerald-400 mt-1 uppercase tracking-tighter">LOCKED</p>
+                 <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest leading-none">{t("syncStatus")}</p>
+                 <p className="text-[12px] font-black text-emerald-400 mt-1 uppercase tracking-tighter">{t("locked")}</p>
               </div>
            </div>
          )}

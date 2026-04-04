@@ -168,7 +168,7 @@ const FishMarket = () => {
           </button>
           <div className="relative z-10">
             <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
-              FISH <span className="text-teal-400">MARKET</span>
+              {t("fishMarket").split(' ')[0]} <span className="text-teal-400">{t("fishMarket").split(' ')[1] || "MARKET"}</span>
             </h1>
             <div className="flex items-center gap-2 mt-1">
               <div className="w-1.5 h-1.5 bg-teal-400 rounded-full animate-pulse" />
@@ -424,8 +424,8 @@ const FishMarket = () => {
               <div className="flex items-start gap-3 p-4 bg-teal-500/10 rounded-2xl border border-teal-500/20">
                 <CheckCircle2 size={18} className="text-teal-400 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-[11px] font-black text-teal-300">Post your fresh catch — buyers contact you directly!</p>
-                  <p className="text-[9px] text-teal-600 mt-0.5">Your phone number is shown to buyers so they can call or WhatsApp you.</p>
+                   <p className="text-[11px] font-black text-teal-300">{t("postListing")} — {t("tagline")}</p>
+                   <p className="text-[9px] text-teal-600 mt-0.5">{t("phonePrompt")}</p>
                 </div>
               </div>
 
@@ -516,9 +516,9 @@ const FishMarket = () => {
                           <div className="flex items-center gap-3 p-3 bg-teal-500/10 border border-teal-500/20 rounded-xl mt-1">
                              <TrendingUp size={16} className="text-teal-400 flex-shrink-0" />
                              <div>
-                                <p className="text-[10px] font-black text-teal-400 uppercase tracking-widest leading-none">AI Price Suggestion</p>
+                                <p className="text-[10px] font-black text-teal-400 uppercase tracking-widest leading-none">AI {t("priceTarget")}</p>
                                 <p className="text-[11px] font-bold text-slate-300 mt-1">
-                                  Based on live regional demand, <strong className="text-white">₹{form.category === 'Prawn' ? 620 : form.category === 'Crab' ? 880 : 250}/kg</strong> will secure a sale within 2 hours.
+                                  {t("aiMarketInsights")}
                                 </p>
                              </div>
                           </div>
@@ -529,7 +529,7 @@ const FishMarket = () => {
                   {/* Description */}
                   <Field label={t("descTarget")}>
                     <textarea
-                      placeholder="e.g. Fresh catch landed this morning. Grade A quality. Live crabs available."
+                      placeholder={t("placeholderDesc")}
                       value={form.description}
                       onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                       rows={3}
@@ -559,7 +559,7 @@ const FishMarket = () => {
                     {submitting ? (
                       <>
                         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Posting...
+                        {t("syncing")}
                       </>
                     ) : (
                       <>

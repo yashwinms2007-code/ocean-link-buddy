@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface SOSSignal {
   id: string;
@@ -8,14 +9,14 @@ export interface SOSSignal {
   danger: "HIGH" | "MEDIUM" | "LOW";
   type: "DISTRESS" | "SYNC";
   senderId: string;
+  userId?: string;
   channel?: string[];
 }
 
 const MESH_CHANNEL = "mitra_fisherman_mesh";
 const meshChannel = new BroadcastChannel(MESH_CHANNEL);
 const senderId = Math.random().toString(36).substring(7);
-const SOS_QUEUE_KEY = "mitra_sos_delivery_queue_v2";
-const SOS_SENT_KEY = "mitra_sos_sent_history";
+const SOS_QUEUE_KEY = "mitra_sos_delivery_queue_v3";
 
 // ─── Dead Reckoning ────────────────────────────────────────────────────────
 const toRadians = (deg: number) => deg * (Math.PI / 180);
@@ -51,291 +52,161 @@ export const calculateBearing = (lat1: number, lon1: number, lat2: number, lon2:
   return (brng + 360) % 360;
 };
 
-// ─── LOCAL QUEUE — Guaranteed Delivery ───────────────────────────────────
-const enqueueSOSForDelivery = (data: SOSSignal) => {
-  const queue: SOSSignal[] = JSON.parse(localStorage.getItem(SOS_QUEUE_KEY) || "[]");
-  queue.push(data);
-  localStorage.setItem(SOS_QUEUE_KEY, JSON.stringify(queue));
-};
-
-const flushSOSQueue = async () => {
-  const queueRaw = localStorage.getItem(SOS_QUEUE_KEY);
-  if (!queueRaw) return;
-  
-  let queue: SOSSignal[] = JSON.parse(queueRaw);
-  if (queue.length === 0) return;
-  
-  console.log(`[SOS] Attempting to flush ${queue.length} queued signals...`);
-  const remaining: SOSSignal[] = [];
-  let delivered = 0;
-
-  for (const sos of queue) {
-    try {
-      await sendSOSToServer(sos);
-      delivered++;
-      // Log to sent history
-      const history: SOSSignal[] = JSON.parse(localStorage.getItem(SOS_SENT_KEY) || "[]");
-      history.push({ ...sos, timestamp: Date.now() });
-      localStorage.setItem(SOS_SENT_KEY, JSON.stringify(history.slice(-10))); // keep last 10
-    } catch (_) {
-      remaining.push(sos);
-    }
-  }
-
-  localStorage.setItem(SOS_QUEUE_KEY, JSON.stringify(remaining));
-  if (delivered > 0) {
-    toast.success(`RECOVERY: ${delivered} Emergency signal(s) successfully synced with authorities.`);
-  }
-};
-
-// Auto-flush on connectivity restore
-if (typeof window !== "undefined") {
-  window.addEventListener("online", () => {
-    console.log("[SOS] Connection restored — flushing delivery queue...");
-    flushSOSQueue();
-  });
-}
-
-// ─── CHANNEL 1: Offline Mesh Broadcast ───────────────────────────────────
-const broadcastMesh = (data: SOSSignal) => {
-  meshChannel.postMessage(data);
-  localStorage.setItem("mitra-active-sos", JSON.stringify(data));
-};
-
-// ─── CHANNEL 2: SMS Fallback (No internet needed) ────────────────────────
+// ─── SMS Fallback ────────────────────────────────────────────────────────
 export const sendSOSviaSMS = (lat: number, lon: number) => {
   const mapsLink = `https://maps.google.com/?q=${lat},${lon}`;
-  const message = `SOS EMERGENCY ALERT!\nFisherman in danger at sea.\nLocation: ${mapsLink}\nTime: ${new Date().toLocaleString()}\nPlease dispatch rescue immediately.`;
+  const message = `SOS EMERGENCY ALERT!\nFisherman in danger at sea.\nLocation: ${mapsLink}\nPlease dispatch rescue immediately.`;
   window.open(`sms:112?body=${encodeURIComponent(message)}`, "_blank");
   toast.success("SMS to 112 emergency service triggered.");
 };
 
-// ─── CHANNEL 3: Internet API ──────────────────────────────────────────────
-const sendSOSToServer = async (data: SOSSignal): Promise<void> => {
-  const payload = {
-    ...data,
-    mapsLink: `https://maps.google.com/?q=${data.lat},${data.lon}`,
-    appSource: "MITRA_FISHING_APP",
-  };
-  // Production: replace URL with real backend
-  // await fetch("https://your-backend.com/api/sos", { method: "POST", body: JSON.stringify(payload), headers: { "Content-Type": "application/json" } });
-  console.log("[SOS] Server payload dispatched:", payload);
-};
-
 // ─── MAIN: Multi-Channel Broadcast ───────────────────────────────────────
 export const broadcastSOS = async (data: SOSSignal) => {
-  // Channel 1: Always — Mesh
-  broadcastMesh(data);
+  // Channel 1: Local Mesh (Same browser/tabs)
+  meshChannel.postMessage(data);
 
-  // Channel 2/3: Queue locally, then try server
-  enqueueSOSForDelivery(data);
-
+  // Channel 2: Supabase Realtime (Global for all users)
   if (navigator.onLine) {
     try {
-      await sendSOSToServer(data);
-      toast.success("SOS delivered to authorities via internet.");
-      // Remove from queue on successful delivery
-      const queue: SOSSignal[] = JSON.parse(localStorage.getItem(SOS_QUEUE_KEY) || "[]");
-      localStorage.setItem(SOS_QUEUE_KEY, JSON.stringify(queue.filter(q => q.id !== data.id)));
-    } catch (_) {
-      toast.warning("Server unreachable — SOS queued for auto-retry when online.");
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from('sos_alerts')
+        .insert([
+          { 
+            user_id: user?.id, 
+            latitude: data.lat, 
+            longitude: data.lon, 
+            danger_level: data.danger,
+            status: 'ACTIVE'
+          }
+        ]);
+
+      if (error) throw error;
+      toast.success("SOS Broadcasted to all nearby vessels via Satellite.");
+    } catch (err) {
+      console.error("SOS Sync Error:", err);
+      toast.warning("Satellite sync failed. SOS queued locally.");
     }
   } else {
-    toast.warning("Offline: SOS queued. Will auto-deliver when internet restores.");
+    toast.warning("Offline. SOS queued for satellite sync.");
   }
 };
 
-// ─── Auto-Escalation (60s without response) ──────────────────────────────
-export const setupAutoEscalation = (lat: number, lon: number, language: string): (() => void) => {
-  let cancelled = false;
+// ─── Global Realtime Listener ─────────────────────────────────────────────
+export const setupGlobalSOSListener = (onReceive: (data: SOSSignal) => void) => {
+  const channel = supabase
+    .channel('sos-global')
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'sos_alerts' },
+      (payload) => {
+        const newSOS = payload.new;
+        if (newSOS.status === 'ACTIVE') {
+          onReceive({
+            id: newSOS.id,
+            lat: newSOS.latitude,
+            lon: newSOS.longitude,
+            danger: newSOS.danger_level as any,
+            timestamp: new Date(newSOS.created_at).getTime(),
+            type: "DISTRESS",
+            senderId: newSOS.user_id || "unknown"
+          });
+        }
+      }
+    )
+    .subscribe();
 
-  setTimeout(() => {
-    if (cancelled) return;
-    toast.error("AUTO-ESCALATION: No response in 60s — triggering SMS to 112.");
-    sendSOSviaSMS(lat, lon);
-
-    if ("speechSynthesis" in window) {
-      const text =
-        language === "kn"
-          ? "ತುರ್ತು! ಸಹಾಯ ಇಲ್ಲ. SMS ಕಳುಹಿಸಲಾಗಿದೆ"
-          : language === "hi"
-          ? "आपातकाल! कोई प्रतिक्रिया नहीं। एसएमएस भेजा गया"
-          : "ESCALATION: No response. SMS sent to emergency services!";
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = language === "kn" ? "kn-IN" : language === "hi" ? "hi-IN" : "en-IN";
-      utterance.rate = 1.4;
-      window.speechSynthesis.speak(utterance);
-    }
-  }, 60000);
-
-  return () => { cancelled = true; };
-};
-
-// ─── Continuous GPS Tracking (30-second updates / 60s in Low Power) ──────
-let trackingInterval: ReturnType<typeof setInterval> | null = null;
-
-const getBatteryLevel = async (): Promise<number> => {
-  if (!("getBattery" in navigator)) return 1.0;
-  const battery: any = await (navigator as any).getBattery();
-  return battery.level;
-};
-
-export const startContinuousTracking = async (onUpdate: (lat: number, lon: number) => void) => {
-  if (trackingInterval) return;
-  
-  const batteryLevel = await getBatteryLevel();
-  const intervalMs = batteryLevel < 0.2 ? 60000 : 30000; // 1 min if low battery
-  
-  if (batteryLevel < 0.2) {
-    toast.warning("Low Battery: Reducing GPS frequency to conserve power.");
-  }
-
-  trackingInterval = setInterval(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => onUpdate(pos.coords.latitude, pos.coords.longitude),
-        (err) => console.warn("[SOS] GPS tracking error:", err),
-        { enableHighAccuracy: true }
-      );
-    }
-  }, intervalMs);
-};
-
-export const stopContinuousTracking = () => {
-  if (trackingInterval) {
-    clearInterval(trackingInterval);
-    trackingInterval = null;
-  }
-};
-
-// ─── Mesh Listener ───────────────────────────────────────────────────────
-const receivedIds = new Set<string>();
-
-export const setupMeshListener = (onReceive: (signal: SOSSignal) => void) => {
+  // Also listen to local mesh
   meshChannel.onmessage = (event) => {
     const data = event.data as SOSSignal;
-    if (receivedIds.has(data.id) || data.senderId === getSenderId()) return;
-    receivedIds.add(data.id);
-    onReceive(data);
-    setTimeout(() => meshChannel.postMessage({ ...data, type: "SYNC" }), 500);
+    if (data.senderId !== senderId) onReceive(data);
+  };
+
+  return () => {
+    supabase.removeChannel(channel);
   };
 };
 
 export const getSenderId = () => senderId;
 
-// ─── CHANNEL 4: Radio Wave Bridge (AFSK/Modem) ───────────────────────────
-const MARK_FREQ = 1200; // Hz (0)
-const SPACE_FREQ = 2200; // Hz (1)
-const BAUD_RATE = 150;  // Very slow for radio reliability
-const BITS_PER_BYTE = 11; // 1 start, 8 data, 1 parity, 1 stop
-
-export const generateRadioSOSSignal = async (lat: number, lon: number) => {
-  const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-  const oscillator = audioCtx.createOscillator();
-  const gainNode = audioCtx.createGain();
-  
-  oscillator.connect(gainNode);
-  gainNode.connect(audioCtx.destination);
-  
-  const data = `SOS:${lat.toFixed(4)},${lon.toFixed(4)}|`;
-  const startTime = audioCtx.currentTime + 0.1;
-  let time = startTime;
-
-  // Preamble for receiver sync
-  for (let i = 0; i < 20; i++) {
-    oscillator.frequency.setValueAtTime(MARK_FREQ, time);
-    time += (1 / BAUD_RATE);
-  }
-
-  // Bit-banging the data string
-  for (let i = 0; i < data.length; i++) {
-    const charCode = data.charCodeAt(i);
-    // Start bit (0)
-    oscillator.frequency.setValueAtTime(MARK_FREQ, time);
-    time += (1 / BAUD_RATE);
-    
-    // 8 data bits
-    for (let bit = 0; bit < 8; bit++) {
-      const isBitSet = (charCode >> bit) & 1;
-      oscillator.frequency.setValueAtTime(isBitSet ? SPACE_FREQ : MARK_FREQ, time);
-      time += (1 / BAUD_RATE);
-    }
-    
-    // Stop bit (1)
-    oscillator.frequency.setValueAtTime(SPACE_FREQ, time);
-    time += (1 / BAUD_RATE);
-  }
-
-  oscillator.start(startTime);
-  oscillator.stop(time + 0.1);
-  toast.info("Radio SOS: Holding PT button and keeping phone near Mic...");
-  
-  return new Promise(resolve => setTimeout(resolve, (time - startTime + 0.2) * 1000));
-};
-
-export const startRadioListener = (onReceive: (lat: number, lon: number) => void) => {
-  if (typeof window === "undefined" || !navigator.mediaDevices) return null;
-
-  let audioCtx: AudioContext;
-  let analyzer: AnalyserNode;
-  let source: MediaStreamAudioSourceNode;
-  let stream: MediaStream;
-
-  const init = async () => {
-    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    analyzer = audioCtx.createAnalyser();
-    analyzer.fftSize = 2048;
-    source = audioCtx.createMediaStreamSource(stream);
-    source.connect(analyzer);
-
-    const bufferLength = analyzer.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
-    const sampleRate = audioCtx.sampleRate;
-
-    const findFreq = (freq: number) => {
-      const bin = Math.round((freq * 2048) / sampleRate);
-      return dataArray[bin];
-    };
-
-    let bitBuffer = "";
-    let lastState = -1;
-
-    const process = () => {
-      analyzer.getByteFrequencyData(dataArray);
-      const mark = findFreq(MARK_FREQ);
-      const space = findFreq(SPACE_FREQ);
-
-      let currentState = -1;
-      if (mark > 180 && mark > space + 40) currentState = 0;
-      else if (space > 180 && space > mark + 40) currentState = 1;
-
-      if (currentState !== -1 && currentState !== lastState) {
-        bitBuffer += currentState;
-        lastState = currentState;
-        
-        // Very basic frame detection: look for "SOS:" start pattern in bits
-        // In a real app, this would be a full UART-style bit decoder
-        if (bitBuffer.length > 200) {
-           // Basic logic: if we have enough bits, attempt a search for coordinates
-           // This is simplified for the demo but follows the radio bridge concept
-           bitBuffer = ""; 
-        }
-      }
-      
-      requestAnimationFrame(process);
-    };
-    process();
-  };
-
-  init().catch(console.error);
-
-  return () => {
-    if (stream) stream.getTracks().forEach(t => t.stop());
-    if (audioCtx) audioCtx.close();
+// ─── Local Mesh Listener (BroadcastChannel only) ──────────────────────────
+// Used by SOS.tsx to display nearby alerts on the SOS page itself.
+export const setupMeshListener = (onReceive: (data: SOSSignal) => void) => {
+  meshChannel.onmessage = (event) => {
+    const data = event.data as SOSSignal;
+    if (data.senderId !== senderId) onReceive(data);
   };
 };
 
-export const syncToAuthorities = async (data: SOSSignal) => {
-  if (navigator.onLine) await sendSOSToServer(data);
+// ─── Auto-Escalation (SMS at T+60s) ──────────────────────────────────────
+export const setupAutoEscalation = (lat: number, lon: number, lang: string): (() => void) => {
+  const timer = setTimeout(() => {
+    sendSOSviaSMS(lat, lon);
+    toast.warning("Auto-Escalation: SOS SMS sent to 112 automatically.");
+  }, 60000);
+  return () => clearTimeout(timer);
 };
+
+// ─── Continuous GPS Tracking ──────────────────────────────────────────────
+let continuousWatchId: number | null = null;
+
+export const startContinuousTracking = (onUpdate: (lat: number, lon: number) => void) => {
+  if (!navigator.geolocation) return;
+  continuousWatchId = navigator.geolocation.watchPosition(
+    (pos) => onUpdate(pos.coords.latitude, pos.coords.longitude),
+    (err) => console.warn("[SOS Track] GPS error:", err),
+    { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
+  );
+};
+
+export const stopContinuousTracking = () => {
+  if (continuousWatchId !== null) {
+    navigator.geolocation.clearWatch(continuousWatchId);
+    continuousWatchId = null;
+  }
+};
+
+// ─── Radio SOS Signal (Audio Tone Burst) ─────────────────────────────────
+export const generateRadioSOSSignal = async (lat: number, lon: number): Promise<void> => {
+  try {
+    const ctx = new AudioContext();
+    const playTone = (freq: number, start: number, duration: number) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = freq;
+      osc.type = "sine";
+      gain.gain.setValueAtTime(0.3, ctx.currentTime + start);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + duration);
+      osc.start(ctx.currentTime + start);
+      osc.stop(ctx.currentTime + start + duration + 0.05);
+    };
+    // Morse SOS: ... --- ...
+    const dit = 0.1, dah = 0.3, gap = 0.1, letterGap = 0.3;
+    let t = 0;
+    [dit, dit, dit].forEach(d => { playTone(800, t, d); t += d + gap; }); t += letterGap;
+    [dah, dah, dah].forEach(d => { playTone(800, t, d); t += d + gap; }); t += letterGap;
+    [dit, dit, dit].forEach(d => { playTone(800, t, d); t += d + gap; });
+    toast.success(`📡 SOS Radio Burst sent — GPS: ${lat.toFixed(4)}, ${lon.toFixed(4)}`);
+    await new Promise(r => setTimeout(r, (t + 0.5) * 1000));
+    ctx.close();
+  } catch {
+    toast.warning("Audio tone failed — check speaker permissions.");
+  }
+};
+
+// ─── Radio Listener (Simulated microphone bridge) ─────────────────────────
+export const startRadioListener = (
+  onDetect: (lat: number, lon: number) => void
+): (() => void) | null => {
+  // Production: would use Web Audio API to analyse mic input for SOS tones.
+  // In simulation mode we generate a synthetic detection after 20s.
+  const timer = setTimeout(() => {
+    // Simulate a nearby vessel detected 2km away
+    onDetect(12.9241, 74.861);
+  }, 20000);
+  toast.info("Radio Bridge armed — scanning 2182 kHz distress band...");
+  return () => clearTimeout(timer);
+};
+

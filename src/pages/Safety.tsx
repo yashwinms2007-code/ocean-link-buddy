@@ -43,29 +43,29 @@ const DRILLS: Record<string, { titleKey: string, steps: { tKey: string, emoji: s
   }
 };
 
-const tutorials = [
+const getTutorials = (t: any) => [
   {
     id: "vhf",
     duration: "03 Min",
-    category: "Communication",
+    category: t("communication"),
     thumbnail: "/assets/vhf_drill.png"
   },
   {
     id: "raft",
     duration: "05 Min",
-    category: "Equipment",
+    category: t("equipment"),
     thumbnail: "/assets/raft_drill.png"
   },
   {
     id: "mob",
     duration: "02 Min",
-    category: "Drills",
+    category: t("drills"),
     thumbnail: "/assets/mob_drill.png"
   },
   {
     id: "flare",
     duration: "02 Min",
-    category: "Safety",
+    category: t("safety"),
     thumbnail: "/assets/flare_drill.png"
   }
 ];
@@ -139,7 +139,7 @@ const Safety = () => {
             <h1 className="text-4xl font-black tracking-tight uppercase leading-none">{t("safety")}</h1>
             <div className="flex items-center gap-2 mt-3">
                <div className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(244,63,94,1)]" />
-               <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em] leading-none">Vessel Integrity • Native Drills</p>
+               <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em] leading-none">{t("vesselIntegrity")} • {t("drills")}</p>
             </div>
           </div>
         </div>
@@ -149,14 +149,14 @@ const Safety = () => {
            <div className="glass-dark p-6 rounded-[2.5rem] border border-white/5 flex items-center gap-5">
               <div className="p-3 bg-white/5 rounded-2xl text-rose-400"><Award size={24} /></div>
               <div>
-                 <p className="text-[10px] font-black text-white uppercase tracking-widest leading-none">Academy Rank</p>
-                 <p className="text-lg font-black text-rose-500 mt-1">Master Mariner</p>
+                 <p className="text-[10px] font-black text-white uppercase tracking-widest leading-none">{t("academyRank")}</p>
+                 <p className="text-lg font-black text-rose-500 mt-1">{t("masterMariner")}</p>
               </div>
            </div>
            <div className="glass-dark p-6 rounded-[2.5rem] border border-white/5 flex items-center gap-5">
               <div className="p-3 bg-white/5 rounded-2xl text-teal-400"><Clock size={24} /></div>
               <div>
-                 <p className="text-[10px] font-black text-white uppercase tracking-widest leading-none">Training Hours</p>
+                 <p className="text-[10px] font-black text-white uppercase tracking-widest leading-none">{t("trainingHours")}</p>
                  <p className="text-lg font-black text-teal-400 mt-1">42.5 hrs</p>
               </div>
            </div>
@@ -167,14 +167,14 @@ const Safety = () => {
       <div className="px-6 space-y-10">
          <div className="flex items-center justify-between px-4">
             <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] flex items-center gap-3">
-               <BookOpen size={16} className="text-rose-500" /> Mandatory Drill Library
+               <BookOpen size={16} className="text-rose-500" /> {t("mandatoryDrills")}
             </h3>
             <span className="text-[10px] font-bold text-rose-500 uppercase tracking-widest flex items-center gap-2">
-               <Zap size={14} strokeWidth={3} /> Verified
+               <Zap size={14} strokeWidth={3} /> {t("verified")}
             </span>
          </div>
          <div className="space-y-8">
-            {tutorials.map((drill) => (
+            {getTutorials(t).map((drill) => (
               <motion.div 
                 key={drill.id}
                 whileHover={{ y: -8 }}
@@ -292,7 +292,7 @@ const Safety = () => {
             <div className="flex-shrink-0 px-6 pb-10 pt-6 space-y-6">
               {/* Step Count Label */}
               <p className="text-[10px] font-black uppercase tracking-[0.4em] text-rose-500 text-center">
-                Step {currentStep + 1} / {DRILLS[selectedDrill].steps.length}
+                {t("step")} {currentStep + 1} / {DRILLS[selectedDrill].steps.length}
               </p>
 
               {/* Animated Instruction Text */}
@@ -316,14 +316,14 @@ const Safety = () => {
                   disabled={currentStep === 0}
                   className="flex-1 py-4 rounded-2xl bg-white/5 border border-white/10 text-white font-black uppercase text-[10px] tracking-widest disabled:opacity-20 transition-all hover:bg-white/10 active:scale-95"
                 >
-                  ← Previous
+                  ← {t("previous")}
                 </button>
                 <button
                   onClick={() => setCurrentStep(Math.min(DRILLS[selectedDrill].steps.length - 1, currentStep + 1))}
                   disabled={currentStep === DRILLS[selectedDrill].steps.length - 1}
                   className="flex-1 py-4 rounded-2xl bg-rose-500 text-white font-black uppercase text-[10px] tracking-widest disabled:opacity-20 transition-all hover:bg-rose-400 shadow-[0_0_24px_rgba(244,63,94,0.5)] active:scale-95"
                 >
-                  Next Step →
+                  {t("nextStep")} →
                 </button>
               </div>
             </div>

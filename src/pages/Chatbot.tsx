@@ -7,13 +7,13 @@ import { fetchSatelliteData, getOceanStats } from "@/services/oceanDataService";
 import { fetchMarineWeather } from "@/services/marineWeatherService";
 
 // ── AI Knowledge Engine ──────────────────────────────────────────────────────
-const QUICK_ACTIONS = [
-  { icon: Fish, label: "Best Fishing Zones", query: "Where are the best fishing zones near me?" },
-  { icon: Waves, label: "Sea Conditions", query: "What are the current sea conditions?" },
-  { icon: AlertTriangle, label: "Safety Tips", query: "Give me safety tips for fishing at sea" },
-  { icon: Wind, label: "Weather Update", query: "What is the current weather and wind speed?" },
-  { icon: Compass, label: "Navigation Help", query: "How do I navigate safely in rough seas?" },
-  { icon: Phone, label: "Emergency Steps", query: "What should I do in a maritime emergency?" },
+const QUICK_ACTIONS = (t: any) => [
+  { icon: Fish, label: t("bestFishingZones"), query: "Where are the best fishing zones near me?" },
+  { icon: Waves, label: t("seaConditions"), query: "What are the current sea conditions?" },
+  { icon: AlertTriangle, label: t("safetyTips"), query: "Give me safety tips for fishing at sea" },
+  { icon: Wind, label: t("weatherUpdate"), query: "What is the current weather and wind speed?" },
+  { icon: Compass, label: t("navigationHelp"), query: "How do I navigate safely in rough seas?" },
+  { icon: Phone, label: t("emergencySteps"), query: "What should I do in a maritime emergency?" },
 ];
 
 const getStaticResponse = (msg: string, lang: string): string | null => {
@@ -71,7 +71,7 @@ const Chatbot = () => {
   const [history, setHistory] = useState([
     { 
       role: 'ai', 
-      text: "👋 I am **MITRA AI**, your Maritime Intelligence Assistant.\n\nAsk me about fishing zones, sea conditions, safety tips, or emergency procedures. Choose a quick action below or type your question.",
+      text: t("chatbotIntro"),
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
     }
   ]);
@@ -248,11 +248,11 @@ const Chatbot = () => {
         </button>
         <div className="relative z-10">
           <h1 className="text-xl font-black tracking-tight text-white flex items-center gap-2">
-            MITRA <span className="text-primary font-black px-2 py-0.5 bg-primary/10 rounded-lg text-[10px] leading-none border border-primary/20">AI CORE</span>
+            MITRA <span className="text-primary font-black px-2 py-0.5 bg-primary/10 rounded-lg text-[10px] leading-none border border-primary/20">{t("chatbotTitle").split(' ')[1]}</span>
           </h1>
           <div className="flex items-center gap-2 mt-1">
             <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,1)]" />
-            <p className="text-slate-500 text-[9px] font-black uppercase tracking-[0.2em]">Advanced Marine Intelligence • Online</p>
+            <p className="text-slate-500 text-[9px] font-black uppercase tracking-[0.2em]">{t("aiOnline")}</p>
           </div>
         </div>
         {isSpeaking && (
@@ -286,14 +286,14 @@ const Chatbot = () => {
             <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
             <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
             <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-            <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest ml-1">Syncing data...</span>
+            <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest ml-1">{t("aiThinking")}</span>
           </div>
         )}
 
         {/* Quick Actions — shown only at start */}
         {history.length <= 1 && (
           <div className="grid grid-cols-2 gap-3 pt-4">
-            {QUICK_ACTIONS.map((action) => (
+            {QUICK_ACTIONS(t).map((action) => (
               <button
                 key={action.query}
                 onClick={() => handleSend(action.query)}
@@ -317,7 +317,7 @@ const Chatbot = () => {
             value={msg}
             onChange={(e) => setMsg(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder={isListening ? "Listening..." : "Ask Mitra AI..."}
+            placeholder={isListening ? t("syncing") : t("askMitra")}
             className="flex-1 bg-transparent text-white placeholder:text-slate-600 font-medium text-sm outline-none min-w-0 px-2"
           />
           <button

@@ -146,9 +146,9 @@ const SeaMap = () => {
           className="flex items-center justify-between"
         >
           <div className="space-y-4">
-            <h1 className="text-5xl font-black tracking-tighter text-slate-950 uppercase leading-none">Sea Explorer</h1>
+            <h1 className="text-5xl font-black tracking-tighter text-slate-950 uppercase leading-none">{t("seaExplorer")}</h1>
             <p className="text-sm font-bold text-slate-400 max-w-[320px] leading-relaxed">
-              {isSOSLink ? "Rescue Intelligence Mode Active." : "Real-time maritime navigation & PFZ intelligence."}
+              {isSOSLink ? t("rescueModeActive") : t("realTimeNav")}
             </p>
           </div>
           <button onClick={() => navigate(-1)} className="p-4 bg-white rounded-3xl shadow-xl text-slate-900 hover:bg-slate-50 border border-slate-100">
@@ -168,20 +168,20 @@ const SeaMap = () => {
            <div className="absolute top-10 left-10 right-10 z-[1000] flex justify-between items-start pointer-events-none">
               <div className={`super-glass p-6 rounded-[2.5rem] shadow-2xl pointer-events-auto flex items-center gap-10 border ${isSOSLink ? 'border-red-500/30' : 'border-white/20'}`}>
                  <div className="flex flex-col gap-2">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">{isSOSLink ? 'Rescue Target' : 'Vessel Position'}</span>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">{isSOSLink ? t("rescueTarget") : t("vesselPosition")}</span>
                     <span className={`text-sm font-black leading-none tracking-tight ${isSOSLink ? 'text-red-600' : 'text-slate-950'}`}>{coords.lat.toFixed(4)}° N, {coords.lng.toFixed(4)}° E</span>
                  </div>
                  <div className="w-px h-10 bg-slate-100" />
                  <div className="flex flex-col gap-2 text-slate-950">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Safe Corridor</span>
-                    <span className="text-sm font-black leading-none tracking-tight uppercase">{weather ? 'TRACKING' : 'SCANNING'}</span>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">{t("safeCorridor")}</span>
+                    <span className="text-sm font-black leading-none tracking-tight uppercase">{weather ? t("vesselStatusOnline") : t("vesselStatusOffline")}</span>
                  </div>
               </div>
 
               {isOffline && (
                 <div className="bg-amber-500 text-white px-6 py-3 rounded-full flex items-center gap-3 shadow-xl pointer-events-auto border border-white/20">
                    <WifiOff size={16} />
-                   <span className="text-[10px] font-black uppercase tracking-widest">Offline View</span>
+                   <span className="text-[10px] font-black uppercase tracking-widest">{t("offlineView")}</span>
                 </div>
               )}
 
@@ -222,19 +222,19 @@ const SeaMap = () => {
                   </div>
                   <div className="flex-1 grid grid-cols-3 gap-6">
                     <div className="flex flex-col">
-                      <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">STEER TO</span>
+                      <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">{t("steerTo")}</span>
                       <span className="text-3xl font-black text-white tracking-tighter">
                         {bearingToSOS.toFixed(0)}° {degToCompass(bearingToSOS)}
                       </span>
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">DISTANCE</span>
+                      <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">{t("distance")}</span>
                       <span className="text-3xl font-black text-white tracking-tighter">
                         {distToSOS.toFixed(2)} KM
                       </span>
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">EST. ARRIVAL</span>
+                      <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">{t("estArrival")}</span>
                       <span className="text-3xl font-black text-white tracking-tighter">
                         {vesselStatus.speed > 0 ? `${etaMins} MIN` : 'STOPPED'}
                       </span>
@@ -250,7 +250,7 @@ const SeaMap = () => {
                       rel="noopener noreferrer"
                       className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-red-600 rounded-full font-black text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all shadow-xl"
                     >
-                       <MapIcon size={14} /> Open in Google Maps
+                       <MapIcon size={14} /> {t("openGoogleMaps")}
                     </a>
                   </div>
                 </div>
@@ -290,11 +290,11 @@ const SeaMap = () => {
               <div className="super-glass px-12 py-5 rounded-full shadow-2xl pointer-events-auto flex gap-12 border border-white/20">
                  <div className="flex items-center gap-4">
                     <div className="w-3.5 h-3.5 bg-emerald-500 rounded-full" />
-                    <span className="text-[10px] font-black uppercase text-slate-800 tracking-widest leading-none">Stable Sea</span>
+                    <span className="text-[10px] font-black uppercase text-slate-800 tracking-widest leading-none">{t("stableSea")}</span>
                  </div>
                  <div className="flex items-center gap-4">
                     <div className="w-3.5 h-3.5 bg-red-500 rounded-full animate-pulse" />
-                    <span className="text-[10px] font-black uppercase text-slate-800 tracking-widest leading-none">Danger Zone</span>
+                    <span className="text-[10px] font-black uppercase text-slate-800 tracking-widest leading-none">{t("dangerZone")}</span>
                  </div>
               </div>
            </div>

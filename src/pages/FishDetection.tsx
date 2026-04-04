@@ -25,13 +25,13 @@ const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => 
   return parseFloat((R * c).toFixed(2));
 };
 
-const getRelativeTime = (timestamp: number) => {
+const getRelativeTime = (timestamp: number, t: (k: string) => string) => {
   const sec = Math.floor((Date.now() - timestamp) / 1000);
-  if (sec < 60) return "Just now";
+  if (sec < 60) return t("justNow");
   const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}m ago`;
+  if (min < 60) return t("minsAgo").replace("{n}", min.toString());
   const hr = Math.floor(min / 60);
-  return `${hr}h ago`;
+  return t("hoursAgo").replace("{n}", hr.toString());
 };
 
 // Custom pulsing icon for the user's vessel
@@ -170,15 +170,15 @@ const FishDetection = () => {
                 disabled={loading}
                 className="bg-slate-950 text-white px-6 py-3 rounded-2xl flex items-center gap-3 shadow-xl hover:bg-black transition-all disabled:opacity-50"
               >
-                 <RefreshCw size={14} className={`${loading ? 'animate-spin' : ''}`} />
+                 <RefreshCw size={14} className={`${loading ? t("trainingLabelSuffix") : ''}`} />
                  <span className="text-[10px] font-black uppercase tracking-widest">{loading ? t("syncing") : t("forceSync")}</span>
               </button>
               {lastSync && (
                 <div className="bg-slate-100 text-slate-500 px-6 py-3 rounded-2xl flex items-center gap-3 border border-slate-200">
-                  <Clock size={14} />
-                  <span className="text-[10px] font-black uppercase tracking-widest">
-                    {t("lastSyncPrefix")} {getRelativeTime(lastSync)}
-                  </span>
+                   <Clock size={14} />
+                   <span className="text-[10px] font-black uppercase tracking-widest">
+                     {t("lastSyncPrefix")} {getRelativeTime(lastSync, t)}
+                   </span>
                 </div>
               )}
            </div>
@@ -370,7 +370,7 @@ const FishDetection = () => {
                       </div>
                       <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                          <Navigation size={12} className="text-primary" />
-                         {t("habitatLabel")}: {selectedZone.zoneName} • ~{Math.round(getDistance(userLoc[0], userLoc[1], selectedZone.lat, selectedZone.lon) / 15 * 60)}m {t("travelTime")}
+                         {t("habitatLabel")}: {selectedZone.zoneName} • ~{Math.round(getDistance(userLoc[0], userLoc[1], selectedZone.lat, selectedZone.lon) / 15 * 60)}{t("travelTime")}
                       </div>
                    </div>
                    <div className="space-y-4">
@@ -623,7 +623,7 @@ const FishDetection = () => {
                            <div className="h-full bg-amber-500 w-[15%]" />
                            <div className="h-full bg-emerald-500 w-[70%]" />
                            <div className="h-full bg-blue-500 w-[15%]" />
-                        </div>
+                         </div>
                         <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">{t("multimodalWeighting")}</span>
                      </div>
                   </div>

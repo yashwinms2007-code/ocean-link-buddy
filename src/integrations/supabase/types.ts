@@ -7,14 +7,66 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.4"
-  }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          id: string
+          full_name: string | null
+          vessel_name: string | null
+          phone_number: string | null
+          experience_level: string | null
+          avatar_url: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id: string
+          full_name?: string | null
+          vessel_name?: string | null
+          phone_number?: string | null
+          experience_level?: string | null
+          avatar_url?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          full_name?: string | null
+          vessel_name?: string | null
+          phone_number?: string | null
+          experience_level?: string | null
+          avatar_url?: string | null
+          updated_at?: string | null
+        }
+      }
+      sos_alerts: {
+        Row: {
+          id: string
+          user_id: string | null
+          latitude: number
+          longitude: number
+          status: string | null
+          danger_level: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          latitude: number
+          longitude: number
+          status?: string | null
+          danger_level?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          latitude?: number
+          longitude?: number
+          status?: string | null
+          danger_level?: string | null
+          created_at?: string | null
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -85,9 +137,9 @@ export type TablesInsert<
     ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Insert: infer I
       }
-      ? I
-      : never
+    ? I
     : never
+  : never
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
@@ -110,9 +162,9 @@ export type TablesUpdate<
     ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Update: infer U
       }
-      ? U
-      : never
+    ? U
     : never
+  : never
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
@@ -147,9 +199,3 @@ export type CompositeTypes<
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
-
-export const Constants = {
-  public: {
-    Enums: {},
-  },
-} as const

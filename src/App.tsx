@@ -1,7 +1,8 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
-import { useEffect } from "react";
+import { BrowserRouter, Route, Routes, useNavigate } from "react-router-dom";
+import { useEffect, useCallback } from "react";
 import { Toaster } from "@/components/ui/toaster";
+import { setupGlobalSOSListener, SOSSignal } from "@/services/sosService";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LanguageProvider } from "@/contexts/LanguageContext";
@@ -56,10 +57,37 @@ const AppRoutes = () => {
   );
 };
 
+// ─── Global SOS Alert Banner ─────────────────────────────────────────────
+const GlobalSOSListener = () => {
+  const navigate = useNavigate();
+
+  const handleIncomingSOS = useCallback((signal: SOSSignal) => {
+    // Show an urgent actionable toast to all users on the platform
+    import("sonner").then(({ toast }) => {
+      toast.error(
+        `🆘 MAYDAY — Vessel in distress nearby! Danger: ${signal.danger}`,
+        {
+          duration: 15000,
+          action: {
+            label: "View SOS Map",
+            onClick: () => navigate("/sos"),
+          },
+        }
+      );
+    });
+  }, [navigate]);
+
+  useEffect(() => {
+    const cleanup = setupGlobalSOSListener(handleIncomingSOS);
+    return cleanup;
+  }, [handleIncomingSOS]);
+
+  return null;
+};
+
 const App = () => {
   useEffect(() => {
     // FORCE FAVICON UPDATE (Bypasses Sticky Caching)
-    // The previous syntax error with literal backslashes is fixed.
     const updateFavicon = () => {
       const link = document.querySelector("link[rel*='icon']") as HTMLLinkElement || document.createElement('link');
       link.type = 'image/png';
@@ -81,6 +109,7 @@ const App = () => {
             <Sonner />
             <GlobalNotificationListener />
             <GlobalSafetyBarrier />
+            <GlobalSOSListener />
             <TopHeader />
             <AppRoutes />
           </TooltipProvider>

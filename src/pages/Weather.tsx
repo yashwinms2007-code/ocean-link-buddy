@@ -64,11 +64,11 @@ const Weather = () => {
   };
 
   const stats = [
-    { label: "Temperature", value: weather?.temperature ?? "--", unit: "°C", icon: Thermometer, color: "text-rose-400" },
+    { label: t("temperature"), value: weather?.temperature ?? "--", unit: "°C", icon: Thermometer, color: "text-rose-400" },
     { label: t("waveHeight"), value: weather?.waveHeight ?? "--", unit: "m", icon: Waves, color: "text-blue-400" },
     { label: t("windSpeed"), value: weather?.windSpeed ?? "--", unit: "km/h", icon: Wind, color: "text-teal-400" },
-    { label: "Rainfall", value: weather?.precipitation ?? "--", unit: "mm", icon: CloudRain, color: "text-blue-500" },
-    { label: "Humidity", value: weather?.humidity ?? "--", unit: "%", icon: Droplets, color: "text-emerald-400" },
+    { label: t("rainfall"), value: weather?.precipitation ?? "--", unit: "mm", icon: CloudRain, color: "text-blue-500" },
+    { label: t("humidity"), value: weather?.humidity ?? "--", unit: "%", icon: Droplets, color: "text-emerald-400" },
   ];
 
   return (
@@ -82,7 +82,7 @@ const Weather = () => {
             <h1 className="text-3xl font-black tracking-tight uppercase leading-none">{t("weather")}</h1>
             <div className="flex items-center gap-2">
                <div className="w-2 h-2 bg-primary rounded-full animate-pulse shadow-[0_0_8px_rgba(14,165,233,0.8)]" />
-               <p className="text-slate-500 text-[11px] font-black uppercase tracking-widest leading-none">Real-Time Coastal Telemetry Sync</p>
+               <p className="text-slate-500 text-[11px] font-black uppercase tracking-widest leading-none">{t("syncing")}</p>
             </div>
           </div>
           <button 
@@ -99,14 +99,14 @@ const Weather = () => {
               <MapPin size={28} />
            </div>
            <div className="flex-1">
-              <p className="text-[12px] font-black text-slate-500 uppercase tracking-widest leading-none mb-2">Monitoring Station</p>
+              <p className="text-[12px] font-black text-slate-500 uppercase tracking-widest leading-none mb-2">{t("monitoringStation")}</p>
               <h2 className="text-2xl font-black text-white tracking-tighter truncate leading-tight">
-                 {loading ? "Locating..." : locationName}
+                 {loading ? t("syncing") : locationName}
               </h2>
            </div>
            <div className="text-right">
-              <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest leading-none">Sync Status</p>
-              <p className="text-[12px] font-black text-emerald-400 mt-1 uppercase tracking-tighter">LOCKED: {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+              <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest leading-none">{t("syncStatus")}</p>
+              <p className="text-[12px] font-black text-emerald-400 mt-1 uppercase tracking-tighter">{t("locked")}: {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
            </div>
         </div>
       </div>
@@ -123,9 +123,9 @@ const Weather = () => {
                  {safety?.status === 'SAFE' ? <ShieldCheck size={28} strokeWidth={2.5} /> : <AlertTriangle size={28} strokeWidth={2.5} />}
               </div>
               <div>
-                 <p className={`text-[12px] font-black uppercase tracking-widest ${safety?.status === 'SAFE' ? 'text-emerald-600/60' : 'text-red-600/60'}`}>Mission Verdict</p>
+                 <p className={`text-[12px] font-black uppercase tracking-widest ${safety?.status === 'SAFE' ? 'text-emerald-600/60' : 'text-red-600/60'}`}>{t("missionVerdict")}</p>
                  <h3 className={`text-2xl font-black tracking-tight leading-none mt-1 ${safety?.status === 'SAFE' ? 'text-emerald-600' : 'text-red-600'}`}>
-                    {safety?.alert || "Analyzing Ocean Risk..."}
+                    {safety?.alert || t("analyzingRisk")}
                  </h3>
               </div>
            </div>
@@ -165,25 +165,25 @@ const Weather = () => {
       <div className="px-10 space-y-6 pb-10">
          <div className="flex items-center justify-between px-2">
             <h3 className="text-[12px] font-black text-slate-500 uppercase tracking-[0.4em]">{t("liveTelemetry")}</h3>
-            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Global Sync</span>
+            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">{t("globalSync")}</span>
          </div>
          
          <div className="bg-slate-900 p-8 rounded-[3.5rem] text-white space-y-8 shadow-xl relative overflow-hidden group">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-teal-500 to-primary animate-shimmer" />
             
             <div className="flex items-center justify-between">
-               <div className="flex items-center gap-5">
+               <div className="flex items-center gap-4">
                   <div className="p-3 bg-white/5 rounded-xl text-teal-400 group-hover:rotate-12 transition-transform shadow-inner"><Compass size={20} /></div>
                   <div>
                      <p className="text-lg font-black leading-none">14.5kts</p>
-                     <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest mt-1.5 leading-none">Ocean Currents</p>
+                     <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest mt-1.5 leading-none">{t("oceanCurrents")}</p>
                   </div>
                </div>
-               <div className="flex items-center gap-5">
+               <div className="flex items-center gap-4">
                   <div className="p-3 bg-white/5 rounded-xl text-rose-400 group-hover:rotate-[-12deg] transition-transform shadow-inner"><ArrowUpRight size={20} /></div>
                   <div>
                      <p className="text-lg font-black leading-none">NNW 15°</p>
-                     <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest mt-1.5 leading-none">Wind Vector</p>
+                     <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest mt-1.5 leading-none">{t("windVector")}</p>
                   </div>
                </div>
             </div>
@@ -191,9 +191,9 @@ const Weather = () => {
             <div className="p-6 bg-white/5 rounded-[2rem] border border-white/5 flex items-center justify-between shadow-inner">
                <div className="flex items-center gap-3">
                   <Clock size={16} className="text-slate-500" />
-                  <span className="text-[12px] font-black text-slate-400 uppercase tracking-widest leading-none">Next Tide Update</span>
+                  <span className="text-[12px] font-black text-slate-400 uppercase tracking-widest leading-none">{t("nextTide")}</span>
                </div>
-               <span className="text-[12px] font-black text-teal-400 leading-none">IN 45 MINS</span>
+               <span className="text-[12px] font-black text-teal-400 leading-none">{t("inMins").replace('{mins}', '45')}</span>
             </div>
          </div>
       </div>

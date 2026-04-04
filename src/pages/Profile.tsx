@@ -68,7 +68,7 @@ const Profile = () => {
            {completedDrills.length > 0 && (
               <div className="flex items-center gap-2 bg-emerald-500/20 px-5 py-2 rounded-full border border-emerald-500/30 shadow-lg">
                  <Award size={16} className="text-emerald-400" />
-                 <span className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em]">Safety Pro</span>
+                 <span className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em]">{t("safetyPro")}</span>
               </div>
            )}
         </div>
@@ -82,8 +82,8 @@ const Profile = () => {
                  <Star size={20} className="text-yellow-400" />
               </div>
               <div>
-                 <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Experience</p>
-                 <p className="text-xl font-black text-white leading-none">Level 12</p>
+                 <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{t("experience")}</p>
+                 <p className="text-xl font-black text-white leading-none">{t("level")} 12</p>
               </div>
            </div>
            <div className="glass-dark p-6 rounded-[2.5rem] border border-white/10 shadow-2xl flex flex-col items-center text-center gap-2">
@@ -91,8 +91,8 @@ const Profile = () => {
                  <Zap size={20} className="text-primary" />
               </div>
               <div>
-                 <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Sea Readiness</p>
-                 <p className="text-xl font-black text-white leading-none">94% High</p>
+                 <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{t("seaReadiness")}</p>
+                 <p className="text-xl font-black text-white leading-none">94% {t("high")}</p>
               </div>
            </div>
         </div>
@@ -101,7 +101,7 @@ const Profile = () => {
         <div className="space-y-4">
            <div className="flex items-center gap-3 px-3">
               <div className="w-1.5 h-4 bg-primary rounded-full" />
-              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em]">IDENTITY METRICS</h3>
+              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em]">{t("identityMetrics")}</h3>
            </div>
            <div className="glass-dark p-8 rounded-[3.5rem] border border-white/10 shadow-2xl flex items-center gap-6 relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-[50px] rounded-full pointer-events-none" />
@@ -112,17 +112,17 @@ const Profile = () => {
               {isEditing ? (
                 <div className="flex-1 space-y-3 relative z-10">
                    <div className="space-y-1">
-                      <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest ml-2">Vessel Master Name</span>
+                      <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest ml-2">{t("vesselMasterName")}</span>
                       <input 
                         type="text" 
                         value={profile.name}
                         onChange={(e) => setProfile(p => ({ ...p, name: e.target.value }))}
                         className="w-full bg-slate-900 border border-primary/30 rounded-2xl px-4 py-3 text-white font-black text-lg focus:outline-none focus:border-primary shadow-inner"
-                        placeholder="Master Name"
+                        placeholder={t("userNameDemo")}
                       />
                    </div>
                    <div className="space-y-1">
-                      <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest ml-2">Comm Link (Phone)</span>
+                      <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest ml-2">{t("commLink")}</span>
                       <input 
                         type="tel" 
                         value={profile.phone}
@@ -134,7 +134,7 @@ const Profile = () => {
                 </div>
               ) : (
                 <div className="flex-1 overflow-hidden relative z-10">
-                   <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] mb-1">Vessel Master</p>
+                   <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] mb-1">{t("vesselMaster")}</p>
                    <h2 className="font-black text-white text-2xl tracking-tighter leading-none truncate mb-3">{profile.name}</h2>
                    <div className="flex items-center gap-3 p-3 bg-white/5 rounded-2xl border border-white/5 w-fit">
                       <Phone size={14} className="text-primary" />
@@ -166,7 +166,7 @@ const Profile = () => {
         <div className="space-y-4">
            <div className="flex items-center gap-3 px-3">
               <div className="w-1.5 h-4 bg-primary rounded-full" />
-              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em]">COMMUNICATION DIALECT</h3>
+              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em]">{t("commDialect")}</h3>
            </div>
            <div className="glass-dark p-8 rounded-[3.5rem] border border-white/10 shadow-2xl relative overflow-hidden">
               <div className="absolute top-0 right-0 p-8 opacity-5">
@@ -194,7 +194,7 @@ const Profile = () => {
         <div className="space-y-4">
            <div className="flex items-center gap-3 px-3">
               <div className="w-1.5 h-4 bg-primary rounded-full" />
-              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em]">ADMINISTRATIVE LINKS</h3>
+              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em]">{t("adminLinks")}</h3>
            </div>
            <div className="glass-dark rounded-[3.5rem] border border-white/10 shadow-2xl overflow-hidden">
               <ProfileItem icon={Shield} label={t("safetyCertificates")} onClick={() => navigate("/safety")} />

@@ -35,9 +35,25 @@ const Login = () => {
     }
     setLoading(true);
     if (isSignUp) {
-      const { error } = await supabase.auth.signUp({ email, password });
+      const { data: authData, error } = await supabase.auth.signUp({ email, password });
+      if (error) { 
+        setLoading(false);
+        toast.error(error.message); 
+        return; 
+      }
+      
+      // Sync to profiles table
+      if (authData.user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([
+            { id: authData.user.id, full_name: email.split('@')[0] }
+          ]);
+        
+        if (profileError) console.error("Profile sync error:", profileError);
+      }
+
       setLoading(false);
-      if (error) { toast.error(error.message); return; }
       toast.success(t("accountCreatedVerify"));
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password });

@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { fetchMarineWeather } from "@/services/marineWeatherService";
 import { evaluateTelemetry, triggerAlert } from "@/utils/alertEngine";
-import { setupMeshListener, SOSSignal, getDistance } from "@/services/sosService";
+import { setupGlobalSOSListener, SOSSignal, getDistance } from "@/services/sosService";
 
 /**
  * 🌊 Background Notification Listener
@@ -59,8 +59,8 @@ const GlobalNotificationListener: React.FC = () => {
     // 2. Setup 10-minute interval polling
     pollingIntervalRef.current = setInterval(checkSeaConditions, 600000);
 
-    // 3. Setup Mesh SOS Listener (Immediate alert for nearby users)
-    setupMeshListener((signal: SOSSignal) => {
+    // 3. Setup Global SOS Listener (Immediate alert for satellite & mesh signals)
+    const cleanupSOS = setupGlobalSOSListener((signal: SOSSignal) => {
       const notifEnabled = localStorage.getItem("mitra_notifications") !== "false";
       if (!notifEnabled) return;
 
@@ -73,13 +73,21 @@ const GlobalNotificationListener: React.FC = () => {
             signal.lon
           );
 
-          if (dist < 50) {
+          // Alert if within 100km (Maritime rescue range)
+          if (dist < 100) {
             triggerAlert(
-              "🚨 NEARBY SOS",
-              `Vessel in distress ${dist.toFixed(1)}km away. Please respond!`,
+              t("dangerAlert"),
+              `${t("sosEmergency")}: ${dist.toFixed(1)}km ${t("distance")}. ${t("steerTo")}!`,
               "SOS",
               language
             );
+            
+            // Store active SOS for the Rescue Navigation UI
+            localStorage.setItem("active_rescue_target", JSON.stringify({
+              ...signal,
+              distance: dist,
+              receivedAt: Date.now()
+            }));
           }
         });
       }
@@ -87,6 +95,7 @@ const GlobalNotificationListener: React.FC = () => {
 
     return () => {
       if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
+      if (cleanupSOS) cleanupSOS();
     };
   }, [language, t]);
 

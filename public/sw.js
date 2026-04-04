@@ -3,10 +3,10 @@ const CACHE_TILES = "mitra-map-tiles-v1";
 const ASSETS_TO_CACHE = [
   "/",
   "/index.html",
-  "/src/main.tsx",
-  "/src/App.tsx",
   "/manifest.json",
-  "/favicon.png"
+  "/favicon.png",
+  "/icon-192.png",
+  "/icon-512.png"
 ];
 
 // Install Event: Cache App Shell
