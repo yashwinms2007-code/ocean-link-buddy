@@ -1,4 +1,4 @@
-const CACHE_NAME = "mitra-v2-cache-v1";
+const CACHE_NAME = "mitra-v2-cache-v3"; // Incremented to force device cache refresh
 const CACHE_TILES = "mitra-map-tiles-v1";
 const ASSETS_TO_CACHE = [
   "/",
