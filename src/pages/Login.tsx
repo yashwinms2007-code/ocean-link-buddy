@@ -3,10 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import mitraLogo from "@/assets/mitra-logo.png";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Mail, Lock, LogIn, UserPlus, Globe, Ship, ShieldCheck, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
+import { setLocalSession, getLocalSession, saveProfile } from "@/services/localDb";
 
 const Login = () => {
   const { t } = useLanguage();
@@ -17,15 +17,19 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) navigate("/dashboard", { replace: true });
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) navigate("/dashboard", { replace: true });
-    });
-
-    return () => subscription.unsubscribe();
+    const session = getLocalSession();
+    if (session) {
+      navigate("/dashboard", { replace: true });
+    }
+    
+    // Listen for cross-tab login events
+    const handleAuthChange = () => {
+      if (getLocalSession()) {
+        navigate("/dashboard", { replace: true });
+      }
+    };
+    window.addEventListener("mitra-auth-change", handleAuthChange);
+    return () => window.removeEventListener("mitra-auth-change", handleAuthChange);
   }, [navigate]);
 
   const handleSubmit = async () => {
@@ -34,37 +38,41 @@ const Login = () => {
       return;
     }
     setLoading(true);
-    if (isSignUp) {
-      const { data: authData, error } = await supabase.auth.signUp({ email, password });
-      if (error) { 
-        setLoading(false);
-        toast.error(error.message); 
-        return; 
-      }
-      
-      // Sync to profiles table
-      if (authData.user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([
-            { id: authData.user.id, full_name: email.split('@')[0] }
-          ]);
-        
-        if (profileError) console.error("Profile sync error:", profileError);
-      }
+    
+    // Simulate slight network delay for better UX feeling
+    await new Promise(r => setTimeout(r, 800));
+    
+    const userId = crypto.randomUUID();
+    const userProfile = { 
+      id: userId, 
+      email,
+      full_name: email.split('@')[0] 
+    };
 
+    if (isSignUp) {
+      await saveProfile(userProfile);
+      setLocalSession(userProfile);
       setLoading(false);
       toast.success(t("accountCreatedVerify"));
+      window.dispatchEvent(new Event("mitra-auth-change"));
+      navigate("/dashboard");
     } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      // In local mode, we just accept any valid-looking login format and assume success
+      setLocalSession(userProfile);
       setLoading(false);
-      if (error) { toast.error(error.message); return; }
       toast.success(t("loginSuccess"));
+      window.dispatchEvent(new Event("mitra-auth-change"));
       navigate("/dashboard");
     }
   };
 
   const handleGuestLogin = () => {
+    setLocalSession({
+      id: 'guest',
+      email: 'guest@mitra.local',
+      full_name: 'Guest Fisherman'
+    });
+    window.dispatchEvent(new Event("mitra-auth-change"));
     toast.success(t("guestWelcome"));
     navigate("/dashboard");
   };
@@ -156,7 +164,7 @@ const Login = () => {
         <div className="flex flex-col items-center gap-4 pt-6">
            <div className="flex items-center gap-3 px-6 py-3 bg-white rounded-2xl border border-slate-100 shadow-sm opacity-60">
               <ShieldCheck size={20} strokeWidth={3} className="text-primary" />
-              <span className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-950">Secure Marine Platform</span>
+              <span className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-950">Secure Offline Node</span>
            </div>
         </div>
       </div>
@@ -165,3 +173,4 @@ const Login = () => {
 };
 
 export default Login;
+

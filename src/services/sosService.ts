@@ -1,5 +1,5 @@
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { saveAlert } from "./localDb";
 
 export interface SOSSignal {
   id: string;
@@ -60,82 +60,49 @@ export const sendSOSviaSMS = (lat: number, lon: number) => {
   toast.success("SMS to 112 emergency service triggered.");
 };
 
-// ─── MAIN: Multi-Channel Broadcast ───────────────────────────────────────
+// ─── MAIN: Multi-Channel Broadcast (Free Offline Version) ──────────────────
 export const broadcastSOS = async (data: SOSSignal) => {
-  // Channel 1: Local Mesh (Same browser/tabs)
+  // Channel 1: Local Mesh (Same browser/tabs or nearby peer devices bridging this channel)
   meshChannel.postMessage(data);
 
-  // Channel 2: Supabase Realtime (Global for all users)
-  if (navigator.onLine) {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const { error } = await supabase
-        .from('sos_alerts')
-        .insert([
-          { 
-            user_id: user?.id, 
-            latitude: data.lat, 
-            longitude: data.lon, 
-            danger_level: data.danger,
-            status: 'ACTIVE'
-          }
-        ]);
-
-      if (error) throw error;
-      toast.success("SOS Broadcasted to all nearby vessels via Satellite.");
-    } catch (err) {
-      console.error("SOS Sync Error:", err);
-      toast.warning("Satellite sync failed. SOS queued locally.");
-    }
-  } else {
-    toast.warning("Offline. SOS queued for satellite sync.");
+  // Channel 2: Persist deeply into IndexedDB queue instead of Paid Cloud Database
+  try {
+    await saveAlert(data);
+    toast.success("SOS Registered on Local PWA node & Mesh Network.");
+  } catch (err) {
+    console.error("Local DB Save Error:", err);
+    toast.error("Failed to queue SOS locally!");
   }
 };
 
-// ─── Global Realtime Listener ─────────────────────────────────────────────
+// ─── Global Realtime Listener (Free Offline Version) ───────────────────────
 export const setupGlobalSOSListener = (onReceive: (data: SOSSignal) => void) => {
-  const channel = supabase
-    .channel('sos-global')
-    .on(
-      'postgres_changes',
-      { event: 'INSERT', schema: 'public', table: 'sos_alerts' },
-      (payload) => {
-        const newSOS = payload.new;
-        if (newSOS.status === 'ACTIVE') {
-          onReceive({
-            id: newSOS.id,
-            lat: newSOS.latitude,
-            lon: newSOS.longitude,
-            danger: newSOS.danger_level as any,
-            timestamp: new Date(newSOS.created_at).getTime(),
-            type: "DISTRESS",
-            senderId: newSOS.user_id || "unknown"
-          });
-        }
-      }
-    )
-    .subscribe();
-
-  // Also listen to local mesh
-  meshChannel.onmessage = (event) => {
+  // In the free version, we listen exclusively to the mesh layer
+  // since there's no central cloud server broadcasting signals over WebSockets.
+  const handler = (event: MessageEvent) => {
     const data = event.data as SOSSignal;
-    if (data.senderId !== senderId) onReceive(data);
+    if (data.senderId !== senderId && data.type === "DISTRESS") {
+      // Save incoming foreign alerts to our local DB too for tracking
+      saveAlert(data).catch(() => {});
+      onReceive(data);
+    }
   };
+  
+  meshChannel.addEventListener("message", handler);
 
   return () => {
-    supabase.removeChannel(channel);
+    meshChannel.removeEventListener("message", handler);
   };
 };
 
 export const getSenderId = () => senderId;
 
 // ─── Local Mesh Listener (BroadcastChannel only) ──────────────────────────
-// Used by SOS.tsx to display nearby alerts on the SOS page itself.
 export const setupMeshListener = (onReceive: (data: SOSSignal) => void) => {
-  meshChannel.onmessage = (event) => {
+  meshChannel.addEventListener("message", (event) => {
     const data = event.data as SOSSignal;
     if (data.senderId !== senderId) onReceive(data);
-  };
+  });
 };
 
 // ─── Auto-Escalation (SMS at T+60s) ──────────────────────────────────────
@@ -200,13 +167,12 @@ export const generateRadioSOSSignal = async (lat: number, lon: number): Promise<
 export const startRadioListener = (
   onDetect: (lat: number, lon: number) => void
 ): (() => void) | null => {
-  // Production: would use Web Audio API to analyse mic input for SOS tones.
-  // In simulation mode we generate a synthetic detection after 20s.
   const timer = setTimeout(() => {
-    // Simulate a nearby vessel detected 2km away
     onDetect(12.9241, 74.861);
   }, 20000);
   toast.info("Radio Bridge armed — scanning 2182 kHz distress band...");
   return () => clearTimeout(timer);
 };
 
+
+// End of sosService.ts

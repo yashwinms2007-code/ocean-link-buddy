@@ -1,10 +1,20 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import { getLocalSession, clearLocalSession } from "@/services/localDb";
+
+// Defining lightweight local user/session objects instead of Supabase types
+export interface LocalUser {
+  id: string;
+  email: string;
+  full_name?: string;
+}
+
+export interface LocalSession {
+  user: LocalUser | null;
+}
 
 interface AuthContextType {
-  session: Session | null;
-  user: User | null;
+  session: LocalSession | null;
+  user: LocalUser | null;
   loading: boolean;
   signOut: () => Promise<void>;
 }
@@ -19,30 +29,39 @@ const AuthContext = createContext<AuthContextType>({
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<LocalSession | null>(null);
+  const [user, setUser] = useState<LocalUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
+    const handleAuthChange = () => {
+      const localUser = getLocalSession();
+      if (localUser) {
+        setUser(localUser);
+        setSession({ user: localUser });
+      } else {
+        setUser(null);
+        setSession(null);
       }
-    );
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
       setLoading(false);
-    });
+    };
 
-    return () => subscription.unsubscribe();
+    handleAuthChange();
+    
+    // Listen for cross-tab login/logout events
+    window.addEventListener("storage", handleAuthChange);
+    // Custom event for same-tab login
+    window.addEventListener("mitra-auth-change", handleAuthChange);
+    
+    return () => {
+      window.removeEventListener("storage", handleAuthChange);
+      window.removeEventListener("mitra-auth-change", handleAuthChange);
+    };
   }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    clearLocalSession();
+    window.dispatchEvent(new Event("mitra-auth-change"));
   };
 
   return (
@@ -51,3 +70,4 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     </AuthContext.Provider>
   );
 };
+
