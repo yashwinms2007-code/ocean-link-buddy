@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Globe, Bell, Settings as SettingsIcon, ShieldCheck, Moon, LayoutTemplate, Volume2, ShieldAlert, RotateCcw, CheckCircle2, Sun } from "lucide-react";
+import { ArrowLeft, Globe, Bell, Settings as SettingsIcon, ShieldCheck, Moon, LayoutTemplate, Volume2, ShieldAlert, RotateCcw, CheckCircle2, Sun, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { toast } from "sonner";
+import { usePWAInstall } from "@/hooks/usePWAInstall";
 
 // ── Apply settings to the DOM immediately ─────────────────────────────────────
 const applySettings = (prefs: Record<string, boolean>) => {
@@ -32,6 +33,7 @@ const Settings = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [saved, setSaved] = useState(false);
+  const { canInstall, installed, promptInstall } = usePWAInstall();
 
   const [prefs, setPrefs] = useState(() => ({
     notifications: localStorage.getItem("mitra_notifications") !== "false",
@@ -116,6 +118,26 @@ const Settings = () => {
       </div>
 
       <div className="px-5 space-y-10">
+
+        {/* Device Installation */}
+        {(!installed && canInstall) && (
+          <Section title="DEVICE INSTALLATION" color="bg-emerald-500">
+             <button
+                onClick={promptInstall}
+                className="w-full bg-emerald-500 p-6 rounded-[3rem] border border-emerald-400 shadow-lg shadow-emerald-500/20 flex items-center justify-between hover:bg-emerald-600 transition-all active:scale-95 group"
+             >
+               <div className="flex items-center gap-5">
+                 <div className="p-3 bg-white text-emerald-600 rounded-[1.5rem] group-hover:-translate-y-1 transition-transform">
+                   <Download size={26} />
+                 </div>
+                 <div className="text-left text-white">
+                   <h4 className="text-xl font-black tracking-tight leading-none mb-1">Install App</h4>
+                   <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-100">Add to Home Screen</p>
+                 </div>
+               </div>
+             </button>
+          </Section>
+        )}
 
         {/* Language */}
         <Section title={t("languageSwitch")} color="bg-primary">

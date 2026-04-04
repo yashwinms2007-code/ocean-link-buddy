@@ -25,6 +25,28 @@
 
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    
+    <script>
+      // Capture PWA install prompt immediately on page load
+      window.deferredPWAInstallPrompt = null;
+      window.isPWAInstalled = false;
+      
+      window.addEventListener('beforeinstallprompt', (e) => {
+        // Prevent Chrome 67 and earlier from automatically showing the prompt
+        e.preventDefault();
+        // Stash the event so it can be triggered later.
+        window.deferredPWAInstallPrompt = e;
+        console.log("PWA Install Prompt ready");
+        window.dispatchEvent(new Event("pwa-prompt-ready"));
+      });
+      
+      window.addEventListener('appinstalled', () => {
+        window.isPWAInstalled = true;
+        window.deferredPWAInstallPrompt = null;
+        console.log("PWA installed successfully");
+        window.dispatchEvent(new Event("pwa-prompt-ready"));
+      });
+    </script>
   </head>
 
   <body class="bg-slate-50 overflow-x-hidden">
