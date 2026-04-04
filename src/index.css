@@ -21,14 +21,24 @@
   }
 
   * { @apply border-border; }
+  html, body {
+    overflow-x: hidden;
+    overscroll-behavior-y: none; /* Prevents pull-to-refresh bounce on mobile */
+    -webkit-overflow-scrolling: touch;
+    width: 100vw;
+  }
+  
   body { 
     @apply bg-slate-50 text-foreground selection:bg-primary/20 selection:text-primary transition-colors duration-300 antialiased;
     font-family: 'Inter', sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
     font-size: 16px;
-    font-weight: 500; /* Increased for maximum clarity */
+    font-weight: 500;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* Respect physical device safe areas (like iPhone notches/home bars) */
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-top: env(safe-area-inset-top);
   }
   
   @media (max-width: 768px) {

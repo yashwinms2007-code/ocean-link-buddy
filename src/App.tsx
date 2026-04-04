@@ -57,24 +57,57 @@ const AppRoutes = () => {
   );
 };
 
-// ─── Global SOS Alert Banner ─────────────────────────────────────────────
+// ─── Global SOS Alert Banner & Native Push Notification ────────────────────────
 const GlobalSOSListener = () => {
   const navigate = useNavigate();
 
+  // Ask for notification permission early
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, []);
+
   const handleIncomingSOS = useCallback((signal: SOSSignal) => {
-    // Show an urgent actionable toast to all users on the platform
+    // 1. In-App Visual Alert
     import("sonner").then(({ toast }) => {
       toast.error(
         `🆘 MAYDAY — Vessel in distress nearby! Danger: ${signal.danger}`,
         {
           duration: 15000,
           action: {
-            label: "View SOS Map",
+            label: "View Map",
             onClick: () => navigate("/sos"),
           },
         }
       );
     });
+
+    // 2. Hardware / Lock Screen Native Push Notification
+    if ("Notification" in window && Notification.permission === "granted") {
+      const notifTitle = "🆘 MAYDAY: VESSEL IN DISTRESS";
+      const notifOptions = {
+        body: `Emergency Alert! Danger level: ${signal.danger}. Tap to open the SOS map immediately.`,
+        icon: "/favicon.png",
+        badge: "/favicon.png",
+        vibrate: [500, 250, 500, 250, 500, 250, 1000], // SOS morse code vibration
+        requireInteraction: true // Keeps notification open until clicked
+      };
+
+      // If app is installed as PWA, service worker can show rich notification
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.ready.then(reg => {
+          reg.showNotification(notifTitle, notifOptions);
+        });
+      } else {
+        // Fallback for standard desktop browsers
+        const n = new Notification(notifTitle, notifOptions);
+        n.onclick = () => {
+          window.focus();
+          navigate("/sos");
+        };
+      }
+    }
   }, [navigate]);
 
   useEffect(() => {
