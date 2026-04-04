@@ -191,7 +191,7 @@ const Dashboard = () => {
             </div>
          </div>
          
-         <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide px-2">
+         <div className="flex gap-4 overflow-x-auto md:flex-wrap md:overflow-visible pb-4 scrollbar-hide px-2">
             {(forecast.length > 0 ? forecast.slice(0, 8) : Array(6).fill(null)).map((item, i) => {
               const condition = item ? getWeatherCondition(item.weatherCode) : { label: "--", icon: Zap, color: 'text-slate-200' };
               return (
@@ -216,8 +216,8 @@ const Dashboard = () => {
       </div>
 
       {/* ── TELEMETRY GRID ── */}
-      <div className="px-6 grid grid-cols-2 gap-5">
-         <div className="col-span-2 px-6 flex items-center justify-between mb-1">
+      <div className="px-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5">
+         <div className="col-span-2 md:col-span-3 lg:col-span-5 px-6 flex items-center justify-between mb-1">
             <h3 className="text-[13px] font-black text-slate-400 uppercase tracking-[0.4em]">{t("liveTelemetry")}</h3>
             <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse" />
          </div>

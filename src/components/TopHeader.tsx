@@ -26,7 +26,7 @@ const TopHeader = () => {
 
   return (
     <header
-      className="fixed top-0 left-0 right-0 z-[5000] flex items-center justify-between p-4 px-8 pointer-events-none"
+      className="fixed top-0 left-0 right-0 z-[5000] flex items-center justify-between p-4 px-8 pointer-events-none md:pl-[6.5rem] md:pr-10"
     >
       {/* System Status Bubble */}
       <div className="flex items-center gap-4 pointer-events-auto">

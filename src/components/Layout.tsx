@@ -21,7 +21,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-          className={shouldHideNav ? "h-full" : "pt-32 pb-40"}
+          className={shouldHideNav ? "h-full" : "pt-32 pb-40 md:pl-[6rem] md:pr-4 md:pt-[6rem] md:pb-10 min-h-screen"}
         >
           {children}
         </motion.main>

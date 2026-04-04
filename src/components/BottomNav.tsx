@@ -22,12 +22,12 @@ const BottomNav = () => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-[2000] px-2 pb-6 pointer-events-none">
+    <nav className="fixed bottom-0 left-0 right-0 z-[2000] px-2 pb-6 pointer-events-none md:right-auto md:w-28 md:h-screen md:pb-0 md:top-0 md:pt-4">
        <motion.div 
          initial={{ y: 100, opacity: 0 }}
          animate={{ y: 0, opacity: 1 }}
          transition={{ type: "spring", damping: 25, stiffness: 200 }}
-         className="super-glass max-w-2xl mx-auto rounded-[3.5rem] p-2 flex items-center justify-between pointer-events-auto shadow-[0_25px_60px_rgba(0,0,0,0.4)] border-2 border-white/30"
+         className="super-glass max-w-2xl mx-auto rounded-[3.5rem] p-2 flex items-center justify-between pointer-events-auto shadow-[0_25px_60px_rgba(0,0,0,0.4)] border-2 border-white/30 md:flex-col md:h-[calc(100vh-2rem)] md:w-20 md:py-8 md:rounded-[2.5rem] md:shadow-2xl md:justify-center md:gap-6"
        >
           {navItems.map((item, i) => {
             if (item.isSpecial) {
@@ -35,10 +35,10 @@ const BottomNav = () => {
                 <button 
                   key="sos"
                   onClick={() => navigate("/sos")}
-                  className="w-14 h-14 bg-red-600 rounded-full flex items-center justify-center text-white shadow-2xl shadow-red-600/40 hover:scale-115 active:scale-90 transition-all group relative -mt-10 mb-2 border-4 border-white"
+                  className="w-14 h-14 bg-red-600 rounded-full flex items-center justify-center text-white shadow-2xl shadow-red-600/40 hover:scale-115 active:scale-90 transition-all group relative -mt-10 mb-2 border-4 border-white md:mt-0 md:mb-0 md:-ml-8 md:w-16 md:h-16"
                 >
                    <div className="absolute inset-0 bg-red-600 rounded-full animate-ping opacity-25" />
-                   <span className="font-black text-[10px]">SOS</span>
+                   <span className="font-black text-[10px] md:text-xs">SOS</span>
                 </button>
               );
             }
