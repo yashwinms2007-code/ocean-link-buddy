@@ -5,7 +5,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import MarineMap from "@/components/MarineMap";
 import { toast } from "sonner";
 import { fetchSatelliteData, getOceanStats, SatellitePoint, OceanStats, PFZData } from "@/services/oceanDataService";
-import { calculateDeadReckoning } from "@/services/sosService";
+import { calculateDeadReckoning, getDistance, calculateBearing } from "@/services/sosService";
 import { fetchMarineWeather, MarineData, degToCompass } from "@/services/marineWeatherService";
 import { motion } from "framer-motion";
 
@@ -28,6 +28,12 @@ const SeaMap = () => {
   const [activeLayer, setActiveLayer] = useState<'none' | 'prediction' | 'sst' | 'chlorophyll'>('none');
   const [satData, setSatData] = useState<SatellitePoint[]>([]);
   const [weather, setWeather] = useState<MarineData | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const rescueTarget = isSOSLink ? { lat: initialLat, lng: initialLng } : null;
+  const distToSOS = rescueTarget ? getDistance(coords.lat, coords.lng, rescueTarget.lat, rescueTarget.lng) : 0;
+  const bearingToSOS = rescueTarget ? calculateBearing(coords.lat, coords.lng, rescueTarget.lat, rescueTarget.lng) : 0;
+  const etaMins = (distToSOS > 0 && vesselStatus.speed > 0) ? Math.round((distToSOS / (vesselStatus.speed * 1.852)) * 60) : 0; // Speed in knots to km/h
 
   useEffect(() => {
     const loadData = async () => {
@@ -75,6 +81,50 @@ const SeaMap = () => {
        return () => navigator.geolocation.clearWatch(watchId);
     }
   }, [searchParams]);
+
+  const handleSeedMap = async () => {
+    if (!navigator.onLine) {
+      toast.error("Internet Required: Please connect to Wi-Fi to download charts.");
+      return;
+    }
+    
+    setIsDownloading(true);
+    toast.info("Capturing Nautical Charts: Preparing 50km radius for offline use...", { duration: 4000 });
+    
+    try {
+      const zoom = 12;
+      // Convert lat/lon to tile x/y
+      const lon2tile = (lon: number, zoom: number) => Math.floor((lon + 180) / 360 * Math.pow(2, zoom));
+      const lat2tile = (lat: number, zoom: number) => Math.floor((1 - Math.log(Math.tan(lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom));
+      
+      const centerX = lon2tile(coords.lng, zoom);
+      const centerY = lat2tile(coords.lat, zoom);
+      const radius = 2; // Small radius for demo to avoid heavy bandwidth
+      
+      const tilesToFetch: string[] = [];
+      for (let x = centerX - radius; x <= centerX + radius; x++) {
+        for (let y = centerY - radius; y <= centerY + radius; y++) {
+          tilesToFetch.push(`https://b.basemaps.cartocdn.com/dark_all/${zoom}/${x}/${y}.png`);
+          tilesToFetch.push(`https://tiles.openseamap.org/seamark/${zoom}/${x}/${y}.png`);
+        }
+      }
+
+      const cache = await caches.open("mitra-map-tiles-v1");
+      let count = 0;
+      for (const url of tilesToFetch) {
+        try {
+          await cache.add(url);
+          count++;
+        } catch (e) { console.warn("Tile skip:", url); }
+      }
+      
+      toast.success(`CHART READY: ${count} Nautical tiles saved to device for offline safety.`);
+    } catch (error) {
+      toast.error("Download Failed: Check storage space or signal.");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   const markers = [
     { 
@@ -136,20 +186,76 @@ const SeaMap = () => {
               )}
 
               <div className="super-glass p-3 rounded-[2.2rem] shadow-2xl pointer-events-auto flex flex-col gap-3 border border-white/20 ml-auto">
-                 {['prediction', 'sst', 'chlorophyll', 'none'].map((l) => (
-                    <button 
-                      key={l}
-                      onClick={() => setActiveLayer(l as any)}
-                      className={`p-4 rounded-[1.8rem] transition-all ${activeLayer === l ? 'bg-primary text-white shadow-xl shadow-primary/30 scale-110' : 'text-slate-400 hover:bg-slate-50'}`}
+                  {['prediction', 'sst', 'chlorophyll', 'none'].map((l) => (
+                     <button 
+                       key={l}
+                       onClick={() => setActiveLayer(l as any)}
+                       className={`p-4 rounded-[1.8rem] transition-all ${activeLayer === l ? 'bg-primary text-white shadow-xl shadow-primary/30 scale-110' : 'text-slate-400 hover:bg-slate-50'}`}
+                     >
+                        {l === 'prediction' && <Target size={24} strokeWidth={2.5} />}
+                        {l === 'sst' && <Thermometer size={24} strokeWidth={2.5} />}
+                        {l === 'chlorophyll' && <Droplets size={24} strokeWidth={2.5} />}
+                        {l === 'none' && <MapIcon size={24} strokeWidth={2.5} />}
+                     </button>
+                  ))}
+                  <div className="w-full h-px bg-slate-100 my-1" />
+                  <button 
+                    onClick={handleSeedMap}
+                    disabled={isDownloading}
+                    className={`p-4 rounded-[1.8rem] transition-all ${isDownloading ? 'bg-emerald-500 text-white animate-pulse' : 'text-emerald-600 hover:bg-emerald-50'}`}
+                  >
+                     <ShieldCheck size={24} strokeWidth={2.5} className={isDownloading ? 'animate-spin' : ''} />
+                  </button>
+               </div>
+            </div>
+
+            {/* Rescue Dashboard (Active Intercept) */}
+            {isSOSLink && (
+              <div className="absolute bottom-32 left-10 right-10 z-[1000] animate-in slide-in-from-bottom-10 fade-in duration-500">
+                <div className="bg-red-600/90 backdrop-blur-2xl p-8 rounded-[3.5rem] shadow-[0_0_60px_rgba(220,38,38,0.5)] border border-white/20 flex items-center gap-10">
+                  <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center animate-pulse">
+                    <Navigation 
+                      size={48} 
+                      className="text-white" 
+                      style={{ transform: `rotate(${bearingToSOS}deg)` }} 
+                    />
+                  </div>
+                  <div className="flex-1 grid grid-cols-3 gap-6">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">STEER TO</span>
+                      <span className="text-3xl font-black text-white tracking-tighter">
+                        {bearingToSOS.toFixed(0)}° {degToCompass(bearingToSOS)}
+                      </span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">DISTANCE</span>
+                      <span className="text-3xl font-black text-white tracking-tighter">
+                        {distToSOS.toFixed(2)} KM
+                      </span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">EST. ARRIVAL</span>
+                      <span className="text-3xl font-black text-white tracking-tighter">
+                        {vesselStatus.speed > 0 ? `${etaMins} MIN` : 'STOPPED'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <div className="px-6 py-3 bg-black/20 rounded-full border border-white/10 mb-2">
+                       <span className="text-[10px] font-black text-white uppercase animate-pulse">RESCUE INTERCEPT ACTIVE</span>
+                    </div>
+                    <a 
+                      href={`https://www.google.com/maps/dir/?api=1&destination=${initialLat},${initialLng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-red-600 rounded-full font-black text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all shadow-xl"
                     >
-                       {l === 'prediction' && <Target size={24} strokeWidth={2.5} />}
-                       {l === 'sst' && <Thermometer size={24} strokeWidth={2.5} />}
-                       {l === 'chlorophyll' && <Droplets size={24} strokeWidth={2.5} />}
-                       {l === 'none' && <MapIcon size={24} strokeWidth={2.5} />}
-                    </button>
-                 ))}
+                       <MapIcon size={14} /> Open in Google Maps
+                    </a>
+                  </div>
+                </div>
               </div>
-           </div>
+            )}
 
            <div className="flex-1 rounded-[3.5rem] overflow-hidden relative">
               <MarineMap
@@ -159,6 +265,7 @@ const SeaMap = () => {
                 activeLayer={activeLayer}
                 satellitePoints={satData}
                 markers={markers}
+                rescuePath={isSOSLink ? [[coords.lat, coords.lng], [initialLat, initialLng]] : []}
               />
               
               {/* Floating Compass Overlay */}

@@ -40,6 +40,17 @@ export const getDistance = (lat1: number, lon1: number, lat2: number, lon2: numb
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
 
+export const calculateBearing = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const φ1 = toRadians(lat1);
+  const φ2 = toRadians(lat2);
+  const Δλ = toRadians(lon2 - lon1);
+
+  const y = Math.sin(Δλ) * Math.cos(φ2);
+  const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+  let brng = toDegrees(Math.atan2(y, x));
+  return (brng + 360) % 360;
+};
+
 // ─── LOCAL QUEUE — Guaranteed Delivery ───────────────────────────────────
 const enqueueSOSForDelivery = (data: SOSSignal) => {
   const queue: SOSSignal[] = JSON.parse(localStorage.getItem(SOS_QUEUE_KEY) || "[]");
@@ -211,6 +222,119 @@ export const setupMeshListener = (onReceive: (signal: SOSSignal) => void) => {
 };
 
 export const getSenderId = () => senderId;
+
+// ─── CHANNEL 4: Radio Wave Bridge (AFSK/Modem) ───────────────────────────
+const MARK_FREQ = 1200; // Hz (0)
+const SPACE_FREQ = 2200; // Hz (1)
+const BAUD_RATE = 150;  // Very slow for radio reliability
+const BITS_PER_BYTE = 11; // 1 start, 8 data, 1 parity, 1 stop
+
+export const generateRadioSOSSignal = async (lat: number, lon: number) => {
+  const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+  const oscillator = audioCtx.createOscillator();
+  const gainNode = audioCtx.createGain();
+  
+  oscillator.connect(gainNode);
+  gainNode.connect(audioCtx.destination);
+  
+  const data = `SOS:${lat.toFixed(4)},${lon.toFixed(4)}|`;
+  const startTime = audioCtx.currentTime + 0.1;
+  let time = startTime;
+
+  // Preamble for receiver sync
+  for (let i = 0; i < 20; i++) {
+    oscillator.frequency.setValueAtTime(MARK_FREQ, time);
+    time += (1 / BAUD_RATE);
+  }
+
+  // Bit-banging the data string
+  for (let i = 0; i < data.length; i++) {
+    const charCode = data.charCodeAt(i);
+    // Start bit (0)
+    oscillator.frequency.setValueAtTime(MARK_FREQ, time);
+    time += (1 / BAUD_RATE);
+    
+    // 8 data bits
+    for (let bit = 0; bit < 8; bit++) {
+      const isBitSet = (charCode >> bit) & 1;
+      oscillator.frequency.setValueAtTime(isBitSet ? SPACE_FREQ : MARK_FREQ, time);
+      time += (1 / BAUD_RATE);
+    }
+    
+    // Stop bit (1)
+    oscillator.frequency.setValueAtTime(SPACE_FREQ, time);
+    time += (1 / BAUD_RATE);
+  }
+
+  oscillator.start(startTime);
+  oscillator.stop(time + 0.1);
+  toast.info("Radio SOS: Holding PT button and keeping phone near Mic...");
+  
+  return new Promise(resolve => setTimeout(resolve, (time - startTime + 0.2) * 1000));
+};
+
+export const startRadioListener = (onReceive: (lat: number, lon: number) => void) => {
+  if (typeof window === "undefined" || !navigator.mediaDevices) return null;
+
+  let audioCtx: AudioContext;
+  let analyzer: AnalyserNode;
+  let source: MediaStreamAudioSourceNode;
+  let stream: MediaStream;
+
+  const init = async () => {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    analyzer = audioCtx.createAnalyser();
+    analyzer.fftSize = 2048;
+    source = audioCtx.createMediaStreamSource(stream);
+    source.connect(analyzer);
+
+    const bufferLength = analyzer.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    const sampleRate = audioCtx.sampleRate;
+
+    const findFreq = (freq: number) => {
+      const bin = Math.round((freq * 2048) / sampleRate);
+      return dataArray[bin];
+    };
+
+    let bitBuffer = "";
+    let lastState = -1;
+
+    const process = () => {
+      analyzer.getByteFrequencyData(dataArray);
+      const mark = findFreq(MARK_FREQ);
+      const space = findFreq(SPACE_FREQ);
+
+      let currentState = -1;
+      if (mark > 180 && mark > space + 40) currentState = 0;
+      else if (space > 180 && space > mark + 40) currentState = 1;
+
+      if (currentState !== -1 && currentState !== lastState) {
+        bitBuffer += currentState;
+        lastState = currentState;
+        
+        // Very basic frame detection: look for "SOS:" start pattern in bits
+        // In a real app, this would be a full UART-style bit decoder
+        if (bitBuffer.length > 200) {
+           // Basic logic: if we have enough bits, attempt a search for coordinates
+           // This is simplified for the demo but follows the radio bridge concept
+           bitBuffer = ""; 
+        }
+      }
+      
+      requestAnimationFrame(process);
+    };
+    process();
+  };
+
+  init().catch(console.error);
+
+  return () => {
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    if (audioCtx) audioCtx.close();
+  };
+};
 
 export const syncToAuthorities = async (data: SOSSignal) => {
   if (navigator.onLine) await sendSOSToServer(data);

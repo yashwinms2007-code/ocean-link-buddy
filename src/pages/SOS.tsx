@@ -15,6 +15,8 @@ import {
   setupAutoEscalation,
   startContinuousTracking,
   stopContinuousTracking,
+  generateRadioSOSSignal,
+  startRadioListener,
 } from "@/services/sosService";
 import { saveNotification } from "@/services/notificationStorage";
 import { triggerAlert } from "@/utils/alertEngine";
@@ -37,6 +39,10 @@ const SOS = () => {
   const [priority, setPriority] = useState<Priority>("idle");
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [trackUpdates, setTrackUpdates] = useState(0);
+  const [isRadioBroadcasting, setIsRadioBroadcasting] = useState(false);
+  const [maydayStep, setMaydayStep] = useState(0);
+  const [isRadioListening, setIsRadioListening] = useState(false);
+  const stopRadioListenerRef = useRef<(() => void) | null>(null);
 
   const audioIntervalRef = useRef<any>(null);
   const flashIntervalRef = useRef<any>(null);
@@ -200,6 +206,73 @@ const SOS = () => {
     setChannels((prev) => ({ ...prev, sms: true }));
   };
 
+  const handleRadioSignal = async () => {
+    setIsRadioBroadcasting(true);
+    await generateRadioSOSSignal(coords.lat, coords.lng);
+    setIsRadioBroadcasting(false);
+  };
+
+  const handleVoiceMayday = () => {
+    if (!("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+    
+    const scripts: Record<Language, string[]> = {
+      en: [
+        `Mayday! Mayday! Mayday!`,
+        `This is Vessel Mitra ${getSenderId().slice(-4)}.`,
+        `Position is ${coords.lat.toFixed(4)} North, ${coords.lng.toFixed(4)} East.`,
+        `I require immediate assistance. Over.`
+      ],
+      hi: [
+        `मेडे! मेडे! मेडे!`,
+        `यह जहाज मित्रा ${getSenderId().slice(-4)} है।`,
+        `स्थान ${coords.lat.toFixed(4)} उत्तर, ${coords.lng.toFixed(4)} पूर्व है।`,
+        `हमें तुरंत सहायता की आवश्यकता है। ओवर।`
+      ],
+      kn: [
+        `ಮೇಡೇ! ಮೇಡೇ! ಮೇಡೇ!`,
+        `ಇದು ಮಿತ್ರ ಹಡಗು ${getSenderId().slice(-4)}.`,
+        `ಸ್ಥಳ ${coords.lat.toFixed(4)} ಉತ್ತರ, ${coords.lng.toFixed(4)} ಪೂರ್ವ.`,
+        `ನಮಗೆ ತಕ್ಷಣ ಸಹಾಯ ಬೇಕು. ಓವರ್.`
+      ]
+    };
+
+    const currentScript = scripts[language] || scripts.en;
+    let step = 0;
+    const playNext = () => {
+      if (step >= currentScript.length) {
+        setMaydayStep(0);
+        return;
+      }
+      setMaydayStep(step + 1);
+      const msg = new SpeechSynthesisUtterance(currentScript[step]);
+      msg.lang = language === 'kn' ? 'kn-IN' : language === 'hi' ? 'hi-IN' : 'en-IN';
+      msg.rate = 0.85;
+      msg.onend = () => setTimeout(playNext, 1200);
+      window.speechSynthesis.speak(msg);
+      step++;
+    };
+    playNext();
+  };
+
+  const toggleRadioListener = () => {
+    if (isRadioListening) {
+      if (stopRadioListenerRef.current) stopRadioListenerRef.current();
+      setIsRadioListening(false);
+      toast.info("Radio Listener Deactivated.");
+    } else {
+      const stop = startRadioListener((lat, lon) => {
+        toast.error(`📡 RADIO SOS DETECTED! Vessel in distress at ${lat.toFixed(4)}, ${lon.toFixed(4)}`, { duration: 8000 });
+        setNearbySOS(prev => [...prev, { id: `RADIO-${Date.now()}`, lat, lon, timestamp: Date.now(), danger: "HIGH", type: "DISTRESS", senderId: "RADIO_BRIDGE" }]);
+      });
+      if (stop) {
+        stopRadioListenerRef.current = stop;
+        setIsRadioListening(true);
+        toast.success("Radio Bridge Active: Listening for nearby SOS chirps...");
+      }
+    }
+  };
+
   const priorityColor = priority === "critical" ? "bg-red-700" : priority === "high" ? "bg-red-600" : priority === "medium" ? "bg-orange-600" : "bg-slate-900/50 backdrop-blur-xl border-b border-white/10";
   const priorityLabel = priority === "critical" ? "🔴 CRITICAL — ESCALATING ALL CHANNELS" : priority === "high" ? "🚨 HIGH — MULTI-CHANNEL SOS ACTIVE" : priority === "medium" ? "⚠️ MEDIUM — ALERTING NEARBY VESSELS" : "STANDBY";
 
@@ -332,6 +405,75 @@ const SOS = () => {
                   <span className="text-[8px] font-black uppercase">SMS Now</span>
                 </button>
               )}
+            </div>
+
+            {/* ─── NEW: RADIO WAVE BRIDGE ─── */}
+            <div className="w-full glass-dark p-6 rounded-[2.5rem] border-2 border-primary/20 relative overflow-hidden group">
+              {isRadioBroadcasting && (
+                <div className="absolute inset-0 bg-primary/5 animate-pulse" />
+              )}
+              
+              <div className="flex items-center justify-between mb-5 relative z-10">
+                <div className="flex items-center gap-3">
+                  <div className={`p-3 rounded-2xl ${isRadioBroadcasting ? 'bg-primary animate-pulse' : 'bg-primary/20'}`}>
+                    <Radio size={24} className="text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-black text-sm uppercase tracking-tight">Ship Radio Bridge</h3>
+                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Digital-over-Radio waves</p>
+                  </div>
+                </div>
+                {isRadioBroadcasting && (
+                  <div className="flex gap-1">
+                    {[1,2,3].map(i => (
+                      <div key={i} className="w-1 h-4 bg-primary rounded-full animate-[bounce_1s_infinite]" style={{ animationDelay: `${i*0.2}s` }} />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-4 relative z-10 text-center">
+                <div className="flex gap-3 px-2 py-4 bg-black/40 rounded-2xl border border-white/5 items-center justify-center">
+                   <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.2em]">Hold Phone near VHF Radio Mic & Press PTT</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={handleRadioSignal}
+                    disabled={isRadioBroadcasting}
+                    className={`flex flex-col items-center gap-2 py-4 rounded-[1.5rem] border-2 transition-all ${isRadioBroadcasting ? 'bg-primary border-primary' : 'bg-primary/10 border-primary/20 hover:bg-primary/20'}`}
+                  >
+                    <Activity size={24} className="text-white" />
+                    <span className="text-[9px] font-black uppercase text-white tracking-widest">
+                      {isRadioBroadcasting ? 'Broadcasting...' : 'Digital Burst'}
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={handleVoiceMayday}
+                    className={`flex flex-col items-center gap-2 py-4 rounded-[1.5rem] border-2 transition-all ${maydayStep > 0 ? 'bg-orange-600 border-orange-500' : 'bg-orange-500/10 border-orange-500/20 hover:bg-orange-500/20'}`}
+                  >
+                    <Volume2 size={24} className="text-orange-400" />
+                    <span className="text-[9px] font-black uppercase text-white tracking-widest">
+                      {maydayStep > 0 ? `Step ${maydayStep}/4` : 'Voice Mayday'}
+                    </span>
+                  </button>
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    onClick={toggleRadioListener}
+                    className={`w-full py-3 rounded-xl border flex items-center justify-center gap-3 transition-all ${isRadioListening ? 'bg-green-600/20 border-green-500 text-green-400' : 'bg-white/5 border-white/10 text-slate-400 font-bold'}`}
+                  >
+                    <div className={`w-2 h-2 rounded-full ${isRadioListening ? 'bg-green-400 animate-pulse' : 'bg-slate-600'}`} />
+                    <span className="text-[10px] uppercase tracking-widest font-black">
+                      {isRadioListening ? 'Receiver Active: Monitoring Radio' : 'Activate Radio Receiver'}
+                    </span>
+                  </button>
+                </div>
+
+                <p className="text-[8px] text-slate-600 font-medium uppercase tracking-[0.1em]">Sends/Receives GPS data via ship VHF Radio waves</p>
+              </div>
             </div>
 
             {/* GPS + Tracking Status */}

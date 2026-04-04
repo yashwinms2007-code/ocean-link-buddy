@@ -1,4 +1,5 @@
 const CACHE_NAME = "mitra-v2-cache-v1";
+const CACHE_TILES = "mitra-map-tiles-v1";
 const ASSETS_TO_CACHE = [
   "/",
   "/index.html",
@@ -38,17 +39,32 @@ self.addEventListener("activate", (event) => {
 
 // Fetch Event: Network-first for data, Cache-first for assets
 self.addEventListener("fetch", (event) => {
-  // Ignore non-GET requests
   if (event.request.method !== "GET") return;
 
-  // Handle Map Tiles & External APIs with special logic if needed
-  // For now, generic cache-first for assets, network-first for others
+  const url = new URL(event.request.url);
+  const isTile = url.href.includes("basemaps.cartocdn.com") || url.href.includes("tiles.openseamap.org");
+
+  if (isTile) {
+    event.respondWith(
+      caches.open(CACHE_TILES).then((cache) => {
+        return cache.match(event.request).then((response) => {
+          if (response) return response;
+          return fetch(event.request).then((networkResponse) => {
+            cache.put(event.request, networkResponse.clone());
+            return networkResponse;
+          });
+        });
+      })
+    );
+    return;
+  }
+
+  // Generic cache-first for other assets
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) return cachedResponse;
 
       return fetch(event.request).catch(() => {
-        // Fallback for navigation if offline
         if (event.request.mode === "navigate") {
           return caches.match("/");
         }

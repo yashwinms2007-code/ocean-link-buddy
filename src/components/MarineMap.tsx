@@ -4,6 +4,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { SatellitePoint } from '@/services/oceanDataService';
 import { SOSSignal } from '@/services/sosService';
+import coastlineData from '@/data/coastline.json';
 
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
@@ -70,7 +71,7 @@ const InjectDarkCSS = () => {
 };
 
 // ── Radar View for Offline Emergency ───────────────────────────────────────────
-const RadarView = ({ center, markers, nearbySOS }: { center: [number, number], markers: any[], nearbySOS: any[] }) => {
+const RadarView = ({ center, markers, nearbySOS, rescuePath }: { center: [number, number], markers: any[], nearbySOS: any[], rescuePath?: [number, number][] }) => {
   return (
     <div className="absolute inset-0 bg-[#050d1a] border-4 border-red-500/20 rounded-[2rem] overflow-hidden flex items-center justify-center pointer-events-none z-[1000]">
       {/* Background Grid */}
@@ -116,6 +117,43 @@ const RadarView = ({ center, markers, nearbySOS }: { center: [number, number], m
             </div>
          </div>
       ))}
+      
+      {/* Offline Coastline Overlay */}
+      <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
+        {coastlineData.features.map((feature: any, idx: number) => {
+          const points = feature.geometry.coordinates.map((coord: number[]) => {
+            const x = 50 + (coord[0] - center[1]) * 200; // Scaled for radar zoom
+            const y = 50 - (coord[1] - center[0]) * 200; 
+            return `${x},${y}`;
+          }).join(' ');
+          
+          return (
+            <polyline
+              key={`coastline-${idx}`}
+              points={points}
+              fill="none"
+              stroke="#fbbf24"
+              strokeWidth="1.5"
+              strokeDasharray="4,2"
+              opacity="0.6"
+            />
+          );
+        })}
+      </svg>
+      {/* Offline Rescue Path */}
+      {rescuePath && rescuePath.length > 1 && (
+        <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <polyline
+            points={rescuePath.map(p => `${50 + (p[1] - center[1]) * 1000},${50 - (p[0] - center[0]) * 1000}`).join(' ')}
+            fill="none"
+            stroke="#ef4444"
+            strokeWidth="3"
+            strokeDasharray="5,3"
+            opacity="0.8"
+            className="animate-pulse"
+          />
+        </svg>
+      )}
     </div>
   );
 };
@@ -130,6 +168,7 @@ export interface MarineMapProps {
   markers?: { position: [number, number]; label: string; isSOS?: boolean; heading?: number; windDir?: number }[];
   nearbySOS?: SOSSignal[];
   route?: [number, number][];
+  rescuePath?: [number, number][];
   satellitePoints?: SatellitePoint[];
   activeLayer?: 'none' | 'prediction' | 'sst' | 'chlorophyll';
   showNautical?: boolean;
@@ -138,7 +177,7 @@ export interface MarineMapProps {
 const MarineMap: React.FC<MarineMapProps> = ({
   center, zoom, height = '400px',
   zones = [], markers = [], nearbySOS = [],
-  route = [], satellitePoints = [],
+  route = [], rescuePath = [], satellitePoints = [],
   activeLayer = 'none', showNautical = true,
 }) => {
   const [isOnline, setIsOnline] = React.useState(navigator.onLine);
@@ -173,7 +212,7 @@ const MarineMap: React.FC<MarineMapProps> = ({
 
   return (
     <div style={{ height, width: '100%', position: 'relative', overflow: 'hidden', borderRadius: '1.5rem', background: '#050d1a' }}>
-      {!isOnline && <RadarView center={center} markers={markers} nearbySOS={nearbySOS} />}
+      {!isOnline && <RadarView center={center} markers={markers} nearbySOS={nearbySOS} rescuePath={rescuePath} />}
       
       <MapContainer
         center={center}
@@ -282,6 +321,14 @@ const MarineMap: React.FC<MarineMapProps> = ({
           <Polyline
             positions={route}
             pathOptions={{ color: '#38bdf8', weight: 3, dashArray: '10, 8', opacity: 0.75 }}
+          />
+        )}
+
+        {rescuePath && rescuePath.length > 1 && (
+          <Polyline
+            positions={rescuePath}
+            pathOptions={{ color: '#ef4444', weight: 5, dashArray: '15, 10', opacity: 0.9, lineJoin: 'round' }}
+            className="animate-pulse"
           />
         )}
 
