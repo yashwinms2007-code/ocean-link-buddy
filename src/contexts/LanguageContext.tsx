@@ -33,10 +33,10 @@ const translations: Record<string, Record<Language, string>> = {
   steerTo:            { en: "STEER TO",                    kn: "ಇತ್ತ ತಿರುಗಿಸಿ",                  hi: "इधर मुड़ें" },
   distance:           { en: "DISTANCE",                    kn: "ದೂರ",                           hi: "दूरी" },
   estArrival:         { en: "EST. ARRIVAL",                kn: "ಸರಾಸರಿ ಸಮಯ",                   hi: "औसत आगमन" },
-  interceptActive:    { en: "RESCUE INTERCEPT ACTIVE",     kn: "ರಕ್ಷಣಾ ಕಾರ್ಯಾಚರಣೆ ಸಕ್ರಿಯ",       hi: "ಬಚಾವ್ ಇಂಟರ್ಸೆಪ್ಟ್ ಸಕ್ರಿಯ" },
+  interceptActive:    { en: "RESCUE INTERCEPT ACTIVE",     kn: "ರಕ್ಷಣಾ ಕಾರ್ಯಾಚರಣೆ ಸಕ್ರಿಯ",       hi: "बचाव इंटरसेप्ट सक्रिय" },
   openGoogleMaps:     { en: "Open in Google Maps",          kn: "ಗೂಗಲ್ ಮ್ಯಾಪ್‌ನಲ್ಲಿ ತೆರೆಯಿರಿ",       hi: "गूगल मैप्स में खोलें" },
-  downloadArea:       { en: "Download Current Area",       kn: "ಪ್ರದೇಶದ ನಕ್ಷೆ ಡೌನ್‌ಲೋಡ್",         hi: "ಪ್ರದೇಶದ ನಕ್ಷೆ ಡೌನ್‌ಲೋಡ್" },
-  settings:           { en: "Settings",                    kn: "ಸೆಟ್ಟಿಂಗ್ಸ್",                  hi: "ಸೆಟ್ಟಿಂಗ್ಸ್" },
+  downloadArea:       { en: "Download Current Area",       kn: "ಪ್ರದೇಶದ ನಕ್ಷೆ ಡೌನ್‌ಲೋಡ್",         hi: "वर्तमान क्षेत्र डाउनलोड करें" },
+  settings:           { en: "Settings",                    kn: "ಸೆಟ್ಟಿಂಗ್ಸ್",                  hi: "सेटिंग्स" },
 
   // SOS page
   sosSuccessToast:    { en: "SOS Emergency Sent!",         kn: "SOS ತುರ್ತು ಕಳುಹಿಸಲಾಗಿದೆ!",    hi: "SOS आपातकाल भेजा गया!" },
