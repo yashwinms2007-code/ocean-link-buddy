@@ -48,7 +48,7 @@ export const calculateBearing = (lat1: number, lon1: number, lat2: number, lon2:
 
   const y = Math.sin(Δλ) * Math.cos(φ2);
   const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
-  let brng = toDegrees(Math.atan2(y, x));
+  const brng = toDegrees(Math.atan2(y, x));
   return (brng + 360) % 360;
 };
 
