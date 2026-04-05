@@ -5,6 +5,8 @@ import { useLanguage, Language } from "@/contexts/LanguageContext";
 import { toast } from "sonner";
 import { fetchSatelliteData, getOceanStats } from "@/services/oceanDataService";
 import { fetchMarineWeather } from "@/services/marineWeatherService";
+import { generateAIResponse, getSystemPrompt, AIChatMessage } from "@/services/aiService";
+import { motion, AnimatePresence } from "framer-motion";
 
 // ── Quick Action Buttons ──────────────────────────────────────────────────────
 const QUICK_ACTIONS = (t: any) => [
@@ -215,8 +217,28 @@ const Chatbot = () => {
       ]);
       const satStats = getOceanStats(satResponse.points);
 
+      // ── LIVE AI INTELLIGENCE ──
+      const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+      if (apiKey && apiKey.length > 30) {
+         try {
+           const messages: AIChatMessage[] = [
+             { role: 'system', content: getSystemPrompt(language, { status: safety.status, waveHeight: marine.waveHeight, windSpeed: marine.windSpeed }, satStats) },
+             ...history.slice(-6).map(h => ({ role: h.role === 'ai' ? 'assistant' : 'user', content: h.text } as AIChatMessage)),
+             { role: 'user', content: finalMsg }
+           ];
+           
+           const aiReply = await generateAIResponse(messages);
+           addAIMessage(aiReply);
+           return;
+         } catch (aiErr) {
+           console.warn("AI Model failed, falling back to static logic:", aiErr);
+         }
+      }
+
+      // ── STATIC FALLBACK LOGIC ──
       const lm = finalMsg.toLowerCase();
       let responseText = "";
+      // ... (existing keyword logic below)
 
       if (lm.includes("fish") || lm.includes("catch") || lm.includes("zone") || lm.includes("मछली") || lm.includes("ಮೀನ")) {
         responseText = language === "kn"
@@ -294,14 +316,30 @@ const Chatbot = () => {
           </div>
         ))}
 
-        {isThinking && (
-          <div className="flex items-center gap-2 px-5 py-3.5 bg-white/5 rounded-full border border-white/5 w-fit animate-pulse">
-            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
-            <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest ml-1">{t("aiThinking")}</span>
-          </div>
-        )}
+        <AnimatePresence>
+          {isThinking && (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="flex justify-start mb-6"
+            >
+              <div className="bg-slate-800 px-8 py-5 rounded-[2.5rem] rounded-bl-none shadow-xl border border-white/10 relative overflow-hidden group">
+                <motion.div 
+                  animate={{ x: ["-100%", "200%"] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/5 to-transparent opacity-50"
+                />
+                <div className="flex gap-2 items-center">
+                  <div className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]" />
+                  <div className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]" />
+                  <div className="w-2 h-2 bg-primary rounded-full animate-bounce" />
+                  <span className="ml-2 text-[10px] font-black text-primary uppercase tracking-widest">{t("aiThinking")}</span>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {history.length <= 1 && (
           <div className="grid grid-cols-2 gap-3 pt-4">
