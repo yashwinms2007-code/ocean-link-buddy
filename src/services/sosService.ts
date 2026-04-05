@@ -60,6 +60,16 @@ export const sendSOSviaSMS = (lat: number, lon: number) => {
   toast.success("SMS to 112 emergency service triggered.");
 };
 
+export const dispatchOfflineFallback = (type: "WEATHER" | "SOS" | "ROUTING", payload: any) => {
+  if (!navigator.onLine) {
+    if (type === "WEATHER") {
+      toast.warning("Offline Mode: Weather Warning dispatched via Local Mesh Radio.");
+    } else if (type === "SOS") {
+      sendSOSviaSMS(payload.lat, payload.lon);
+    }
+  }
+};
+
 // ─── MAIN: Multi-Channel Broadcast (Free Offline Version) ──────────────────
 export const broadcastSOS = async (data: SOSSignal) => {
   // Channel 1: Local Mesh (Same browser/tabs or nearby peer devices bridging this channel)

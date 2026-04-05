@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Globe, Bell, Settings as SettingsIcon, ShieldCheck, Moon, LayoutTemplate, Volume2, ShieldAlert, RotateCcw, CheckCircle2, Sun, Download } from "lucide-react";
+import { ArrowLeft, Globe, Bell, Settings as SettingsIcon, ShieldCheck, Moon, LayoutTemplate, Volume2, ShieldAlert, RotateCcw, CheckCircle2, Sun, Download, BatteryMedium } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { toast } from "sonner";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
+import { useLowPower } from "@/contexts/LowPowerContext";
 
 // ── Apply settings to the DOM immediately ─────────────────────────────────────
 const applySettings = (prefs: Record<string, boolean>) => {
@@ -34,6 +35,7 @@ const Settings = () => {
   const navigate = useNavigate();
   const [saved, setSaved] = useState(false);
   const { canInstall, installed, promptInstall } = usePWAInstall();
+  const { isLowPowerMode, manualToggle } = useLowPower();
 
   const [prefs, setPrefs] = useState(() => ({
     notifications: localStorage.getItem("mitra_notifications") !== "false",
@@ -138,6 +140,20 @@ const Settings = () => {
              </button>
           </Section>
         )}
+
+        {/* Power Management */}
+        <Section title="POWER MANAGEMENT" color="bg-orange-500">
+           <div className="bg-white rounded-[3.5rem] border border-gray-200 shadow-md overflow-hidden">
+             <SettingItem
+               icon={BatteryMedium}
+               label="Emergency Power Mode"
+               desc="Max battery saver. Pitch black bg, basic UI."
+               active={isLowPowerMode}
+               onClick={manualToggle}
+               last
+             />
+           </div>
+        </Section>
 
         {/* Language */}
         <Section title={t("languageSwitch")} color="bg-primary">

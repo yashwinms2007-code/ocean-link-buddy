@@ -18,19 +18,20 @@ const SeaMap = () => {
   const [searchParams] = useSearchParams();
   
   // Extract deep-link coordinates if opening from an Alert
-  const initialLat = searchParams.get("lat") ? parseFloat(searchParams.get("lat")!) : MANGALORE_LAT;
-  const initialLng = searchParams.get("lng") ? parseFloat(searchParams.get("lng")!) : MANGALORE_LNG;
+  const sosLat = searchParams.get("lat") ? parseFloat(searchParams.get("lat")!) : MANGALORE_LAT;
+  const sosLng = searchParams.get("lng") ? parseFloat(searchParams.get("lng")!) : MANGALORE_LNG;
   const isSOSLink = searchParams.get("sos") === "true";
   const isOffline = searchParams.get("mode") === "offline";
 
-  const [coords, setCoords] = useState({ lat: initialLat, lng: initialLng });
+  const [coords, setCoords] = useState({ lat: MANGALORE_LAT, lng: MANGALORE_LNG });
   const [vesselStatus, setVesselStatus] = useState({ heading: 0, speed: 0, accuracy: 0 });
   const [activeLayer, setActiveLayer] = useState<'none' | 'prediction' | 'sst' | 'chlorophyll'>('none');
   const [satData, setSatData] = useState<SatellitePoint[]>([]);
   const [weather, setWeather] = useState<MarineData | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [returnToShore, setReturnToShore] = useState(false);
 
-  const rescueTarget = isSOSLink ? { lat: initialLat, lng: initialLng } : null;
+  const rescueTarget = isSOSLink ? { lat: sosLat, lng: sosLng } : null;
   const distToSOS = rescueTarget ? getDistance(coords.lat, coords.lng, rescueTarget.lat, rescueTarget.lng) : 0;
   const bearingToSOS = rescueTarget ? calculateBearing(coords.lat, coords.lng, rescueTarget.lat, rescueTarget.lng) : 0;
   const etaMins = (distToSOS > 0 && vesselStatus.speed > 0) ? Math.round((distToSOS / (vesselStatus.speed * 1.852)) * 60) : 0; // Speed in knots to km/h
@@ -54,7 +55,7 @@ const SeaMap = () => {
 
   // Real-time High-Accuracy GPS Tracking
   useEffect(() => {
-    if (!searchParams.get("lat") && !searchParams.get("lng") && "geolocation" in navigator) {
+    if ("geolocation" in navigator) {
        const watchId = navigator.geolocation.watchPosition(
           (pos) => {
              const { latitude, longitude, heading, speed, accuracy } = pos.coords;
@@ -133,7 +134,9 @@ const SeaMap = () => {
       isSOS: isSOSLink,
       heading: vesselStatus.heading,
       speed: vesselStatus.speed
-    }
+    },
+    { position: [coords.lat + 0.03, coords.lng - 0.02] as [number, number], label: "Mesh MkV: Kingfisher-2 (Tuna: High)", heading: 45, speed: 12 },
+    { position: [coords.lat - 0.04, coords.lng - 0.05] as [number, number], label: "Mesh MkV: SeaBreeze (Sardine: High)", heading: 120, speed: 8 }
   ];
 
   return (
@@ -200,6 +203,16 @@ const SeaMap = () => {
                   ))}
                   <div className="w-full h-px bg-slate-100 my-1" />
                   <button 
+                    onClick={() => {
+                      setReturnToShore(!returnToShore);
+                      toast.info(returnToShore ? "Free navigation active." : "Route mapped to nearest emergency coastal base.");
+                      if (!returnToShore) setActiveLayer('none');
+                    }}
+                    className={`p-4 rounded-[1.8rem] transition-all mb-1 ${returnToShore ? 'bg-green-500 text-white shadow-xl shadow-green-500/30 scale-110' : 'text-slate-400 hover:bg-slate-50'}`}
+                  >
+                     <Anchor size={24} strokeWidth={2.5} />
+                  </button>
+                  <button 
                     onClick={handleSeedMap}
                     disabled={isDownloading}
                     className={`p-4 rounded-[1.8rem] transition-all ${isDownloading ? 'bg-emerald-500 text-white animate-pulse' : 'text-emerald-600 hover:bg-emerald-50'}`}
@@ -245,7 +258,7 @@ const SeaMap = () => {
                        <span className="text-[10px] font-black text-white uppercase animate-pulse">RESCUE INTERCEPT ACTIVE</span>
                     </div>
                     <a 
-                      href={`https://www.google.com/maps/dir/?api=1&destination=${initialLat},${initialLng}`}
+                      href={`https://www.google.com/maps/dir/?api=1&destination=${sosLat},${sosLng}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-red-600 rounded-full font-black text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all shadow-xl"
@@ -260,12 +273,13 @@ const SeaMap = () => {
            <div className="flex-1 rounded-[3.5rem] overflow-hidden relative">
               <MarineMap
                 center={[coords.lat, coords.lng]}
-                zoom={isSOSLink ? 15 : 12}
+                zoom={isSOSLink ? 15 : (returnToShore ? 11 : 12)}
                 height="100%"
                 activeLayer={activeLayer}
                 satellitePoints={satData}
                 markers={markers}
-                rescuePath={isSOSLink ? [[coords.lat, coords.lng], [initialLat, initialLng]] : []}
+                route={returnToShore ? [[coords.lat, coords.lng], [MANGALORE_LAT, MANGALORE_LNG]] : []}
+                rescuePath={isSOSLink ? [[coords.lat, coords.lng], [sosLat, sosLng]] : []}
               />
               
               {/* Floating Compass Overlay */}

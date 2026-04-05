@@ -6,6 +6,7 @@ import { setupGlobalSOSListener, SOSSignal } from "@/services/sosService";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LanguageProvider } from "@/contexts/LanguageContext";
+import { LowPowerProvider } from "@/contexts/LowPowerContext";
 import Layout from "./components/Layout";
 import GlobalNotificationListener from "@/components/GlobalNotificationListener";
 import GlobalSafetyBarrier from "@/components/GlobalSafetyBarrier";
@@ -137,14 +138,16 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <LanguageProvider>
-          <TooltipProvider>
+          <LowPowerProvider>
+            <TooltipProvider>
             <Toaster />
             <Sonner />
             <GlobalNotificationListener />
             <GlobalSafetyBarrier />
             <GlobalSOSListener />
             <AppRoutes />
-          </TooltipProvider>
+            </TooltipProvider>
+          </LowPowerProvider>
         </LanguageProvider>
       </BrowserRouter>
     </QueryClientProvider>

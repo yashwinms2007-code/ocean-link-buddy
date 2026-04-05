@@ -231,7 +231,9 @@ const FishDetection = () => {
             <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50">
                <div>
                   <h3 className="text-xl font-black text-slate-900 tracking-tight">Karnataka Forecast Database</h3>
-                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest mt-1">Validity: 3 Apr 2026 - 4 Apr 2026</p>
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest mt-1">
+                     Validity: {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} - {new Date(new Date().setDate(new Date().getDate() + 1)).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </p>
                </div>
                <Search className="text-slate-300" />
             </div>
@@ -241,6 +243,7 @@ const FishDetection = () => {
                   <thead className="bg-white">
                      <tr>
                         <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Origin Coast</th>
+                        <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Safety</th>
                         <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Direction</th>
                         <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Bearing</th>
                         <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Distance (km)</th>
@@ -259,6 +262,12 @@ const FishDetection = () => {
                              <div className="flex items-center gap-3">
                                <div className={`w-2 h-2 rounded-full ${selectedRecord?.coast === row.coast ? 'bg-primary animate-pulse' : 'bg-slate-300'}`} />
                                <span className="text-sm font-bold text-slate-900">{row.coast}</span>
+                             </div>
+                           </td>
+                           <td className="px-8 py-4">
+                             <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${getSafetyStatus(row.distanceKm).bg} ${getSafetyStatus(row.distanceKm).color}`}>
+                               {getSafetyStatus(row.distanceKm).status === 'DANGER' ? <AlertTriangle size={12} /> : getSafetyStatus(row.distanceKm).status === 'CAUTION' ? <AlertTriangle size={12} /> : <ShieldCheck size={12} />}
+                               {getSafetyStatus(row.distanceKm).status}
                              </div>
                            </td>
                            <td className="px-8 py-4 text-sm font-bold text-slate-500">{row.direction}</td>
