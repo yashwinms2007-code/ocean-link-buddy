@@ -23,7 +23,6 @@
   * { @apply border-border; }
   html, body {
     overflow-x: hidden;
-    overscroll-behavior-y: none; /* Prevents pull-to-refresh bounce on mobile */
     -webkit-overflow-scrolling: touch;
     width: 100vw;
   }

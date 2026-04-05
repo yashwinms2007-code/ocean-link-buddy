@@ -11,7 +11,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const shouldHideNav = noNavPaths.includes(location.pathname);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-primary/10 selection:text-primary overflow-x-hidden">
+    <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-primary/10 selection:text-primary overflow-x-hidden overflow-y-auto">
       {!shouldHideNav && <TopHeader />}
       
       <AnimatePresence mode="wait">

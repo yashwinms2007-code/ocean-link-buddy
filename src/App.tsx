@@ -143,7 +143,6 @@ const App = () => {
             <GlobalNotificationListener />
             <GlobalSafetyBarrier />
             <GlobalSOSListener />
-            <TopHeader />
             <AppRoutes />
           </TooltipProvider>
         </LanguageProvider>
