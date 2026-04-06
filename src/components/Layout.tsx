@@ -11,7 +11,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const shouldHideNav = noNavPaths.includes(location.pathname);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-primary/10 selection:text-primary overflow-x-hidden overflow-y-auto">
+    <div className="bg-slate-50 text-slate-900 selection:bg-primary/10 selection:text-primary min-h-[100dvh]">
       {!shouldHideNav && <TopHeader />}
       
       <AnimatePresence mode="wait">
@@ -21,7 +21,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-          className={shouldHideNav ? "h-full" : "pt-32 pb-40 md:pl-[6rem] md:pr-4 md:pt-[6rem] md:pb-10 min-h-screen"}
+          className={shouldHideNav ? "h-full" : "pt-32 pb-40 md:pl-[6rem] md:pr-4 md:pt-[6rem] md:pb-10 min-h-[100dvh] transition-all"}
         >
           {children}
         </motion.main>

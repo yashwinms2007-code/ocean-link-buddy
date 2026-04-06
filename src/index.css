@@ -25,6 +25,10 @@
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     width: 100vw;
+    /* Use dynamic viewport height to prevent address bar issues on mobile */
+    min-height: 100vh;
+    min-height: 100dvh;
+    scroll-behavior: smooth;
   }
   
   body { 
@@ -38,6 +42,7 @@
     /* Respect physical device safe areas (like iPhone notches/home bars) */
     padding-bottom: env(safe-area-inset-bottom);
     padding-top: env(safe-area-inset-top);
+    position: relative;
   }
   
   @media (max-width: 768px) {
