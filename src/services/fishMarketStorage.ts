@@ -17,9 +17,24 @@ export interface FishListing {
   isDemo?: boolean;     // seeded demo data
 }
 
+export interface DeliveryRequest {
+  id: string;
+  listingId: string;
+  species: string;
+  quantity: number;
+  totalPrice: number;
+  deliveryFee: number;
+  distance: number;
+  customerPhone: string;
+  customerAddress: string;
+  status: "pending" | "confirmed" | "delivered";
+  timestamp: number;
+}
+
 const DB_NAME = "mitra_market_db";
 const STORE_NAME = "listings";
-const DB_VERSION = 2;
+const DELIVERY_STORE = "delivery_requests";
+const DB_VERSION = 3;
 
 let dbPromise: Promise<IDBPDatabase<any>> | null = null;
 
@@ -31,6 +46,11 @@ const getDB = () => {
           const store = db.createObjectStore(STORE_NAME, { keyPath: "id" });
           store.createIndex("timestamp", "timestamp");
           store.createIndex("species", "species");
+        }
+        if (!db.objectStoreNames.contains(DELIVERY_STORE)) {
+          const deliveryStore = db.createObjectStore(DELIVERY_STORE, { keyPath: "id" });
+          deliveryStore.createIndex("timestamp", "timestamp");
+          deliveryStore.createIndex("status", "status");
         }
       },
     });
@@ -48,6 +68,25 @@ export const saveListing = async (listing: Omit<FishListing, "id" | "timestamp">
   await db.add(STORE_NAME, newListing);
   window.dispatchEvent(new Event("mitra-market-change"));
   return newListing;
+};
+
+export const saveDeliveryRequest = async (request: Omit<DeliveryRequest, "id" | "timestamp" | "status">) => {
+  const db = await getDB();
+  const newRequest: DeliveryRequest = {
+    ...request,
+    id: crypto.randomUUID(),
+    status: "pending",
+    timestamp: Date.now(),
+  };
+  await db.add(DELIVERY_STORE, newRequest);
+  window.dispatchEvent(new Event("mitra-delivery-change"));
+  return newRequest;
+};
+
+export const getAllDeliveryRequests = async (): Promise<DeliveryRequest[]> => {
+  const db = await getDB();
+  const requests = await db.getAllFromIndex(DELIVERY_STORE, "timestamp");
+  return requests.reverse();
 };
 
 export const getAllListings = async (): Promise<FishListing[]> => {

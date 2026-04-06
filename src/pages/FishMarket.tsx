@@ -3,14 +3,14 @@ import {
   ArrowLeft, ShoppingCart, Phone, Tag, MapPin, Package,
   ShieldCheck, Zap, TrendingUp, Info, Search, Trash2,
   MessageCircle, Plus, Fish, Clock, CheckCircle2, ChevronDown, X,
-  Sparkles, TrendingDown, Activity
+  Sparkles, TrendingDown, Activity, ClipboardCheck, MessageSquarePlus
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "sonner";
 import {
   saveListing, getAllListings, deleteListing,
-  seedDemoListings, FishListing
+  seedDemoListings, FishListing, saveDeliveryRequest, getAllDeliveryRequests, DeliveryRequest
 } from "@/services/fishMarketStorage";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
@@ -44,10 +44,12 @@ const FishMarket = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<"buy" | "sell">("buy");
+  const [activeTab, setActiveTab] = useState<"buy" | "sell" | "deliveries">("buy");
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [listings, setListings] = useState<FishListing[]>([]);
+  const [deliveries, setDeliveries] = useState<DeliveryRequest[]>([]);
+  const [userPos, setUserPos] = useState<{lat: number, lon: number} | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -63,17 +65,32 @@ const FishMarket = () => {
   });
 
   // Live reload on DB change
-  const loadListings = useCallback(async () => {
-    const items = await getAllListings();
+  const loadData = useCallback(async () => {
+    const [items, sets] = await Promise.all([getAllListings(), getAllDeliveryRequests()]);
     setListings(items);
+    setDeliveries(sets);
     setLoading(false);
   }, []);
 
   useEffect(() => {
-    seedDemoListings().then(loadListings);
-    window.addEventListener("mitra-market-change", loadListings);
-    return () => window.removeEventListener("mitra-market-change", loadListings);
-  }, [loadListings]);
+    seedDemoListings().then(loadData);
+    
+    // Background location fetch to "make it fast"
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setUserPos({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+        null,
+        { enableHighAccuracy: false, timeout: 10000 }
+      );
+    }
+
+    window.addEventListener("mitra-market-change", loadData);
+    window.addEventListener("mitra-delivery-change", loadData);
+    return () => {
+      window.removeEventListener("mitra-market-change", loadData);
+      window.removeEventListener("mitra-delivery-change", loadData);
+    };
+  }, [loadData]);
 
   // ── Filtered listings ─────────────────────────────────────────────────────
   const filtered = listings.filter(item => {
@@ -103,10 +120,85 @@ const FishMarket = () => {
     window.open(`https://wa.me/${clean}?text=${msg}`, "_blank");
   };
 
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371; // Radius of earth in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return Math.round(R * c);
+  };
+
+  const handleDeliveryRequest = async (item: FishListing) => {
+    // Use background position if ready, otherwise fetch quick
+    let lat: number, lon: number;
+
+    if (userPos) {
+      lat = userPos.lat;
+      lon = userPos.lon;
+    } else {
+      toast.info("Calculating distance...");
+      const getPos = () => new Promise<GeolocationPosition | null>((res) => {
+        if (!navigator.geolocation) { res(null); return; }
+        navigator.geolocation.getCurrentPosition(res, () => res(null), { timeout: 3000 });
+      });
+      const pos = await getPos();
+      if (!pos) {
+        toast.error("GPS required for delivery calculation.");
+        return;
+      }
+      lat = pos.coords.latitude;
+      lon = pos.coords.longitude;
+      setUserPos({ lat, lon });
+    }
+
+    const dist = calculateDistance(lat, lon, item.lat, item.lon);
+    const fee = Math.max(50, dist * 10); 
+    const total = (item.price * item.quantity) + fee;
+    const requestId = `MT${Math.floor(1000 + Math.random() * 9000)}`;
+
+    try {
+      await saveDeliveryRequest({
+        listingId: item.id,
+        species: item.species,
+        quantity: item.quantity,
+        totalPrice: total,
+        deliveryFee: fee,
+        distance: dist,
+        customerPhone: "+91",
+        customerAddress: item.location,
+      });
+
+      const logisticsPhone = "+919019807085";
+      const smsMsg = `Mitra Delivery Request: #${requestId}\nItem: ${item.species}\nQty: ${item.quantity}kg\nFee: ₹${fee}\nLocation: ${item.location}`;
+      
+      // Use hybrid separator ?&body= for maximum 2026 compatibility
+      window.location.href = `sms:${logisticsPhone}?&body=${encodeURIComponent(smsMsg)}`;
+      
+      toast.success(`Request #${requestId} saved!`, {
+        description: "Tap 'Send' in your SMS app, or use the 'Copy' button in the Deliveries tab if needed.",
+        duration: 8000,
+      });
+      setActiveTab("deliveries");
+    } catch {
+      toast.error("Failed to save delivery request locally.");
+    }
+  };
+
   const handleDelete = async (id: string) => {
     await deleteListing(id);
     setConfirmDelete(null);
     toast.success("Listing removed.");
+  };
+
+  const copyDeliveryDetails = (req: DeliveryRequest) => {
+    const text = `Mitra Delivery: #${req.id.split('-')[0].toUpperCase()}\nItem: ${req.species}\nQty: ${req.quantity}kg\nFee: ₹${req.deliveryFee}\nDistance: ${req.distance}km\nLocation: ${req.customerAddress}`;
+    navigator.clipboard.writeText(text).then(() => {
+      toast.success("Details copied!", { description: "You can now paste them in any messaging app." });
+    });
   };
 
   const handleSubmit = async () => {
@@ -195,15 +287,21 @@ const FishMarket = () => {
         <div className="flex glass-dark p-1.5 rounded-2xl border border-white/10">
           <button
             onClick={() => setActiveTab("buy")}
-            className={`flex-1 py-3 text-[11px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2 ${activeTab === 'buy' ? 'bg-teal-500 text-white shadow-lg' : 'text-slate-500'}`}
+            className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2 ${activeTab === 'buy' ? 'bg-teal-500 text-white shadow-lg' : 'text-slate-500'}`}
           >
-            <ShoppingCart size={15} /> {t("browseBuy")}
+            <ShoppingCart size={14} /> {t("browseBuy")}
           </button>
           <button
             onClick={() => setActiveTab("sell")}
-            className={`flex-1 py-3 text-[11px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2 ${activeTab === 'sell' ? 'bg-teal-500 text-white shadow-lg' : 'text-slate-500'}`}
+            className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2 ${activeTab === 'sell' ? 'bg-teal-500 text-white shadow-lg' : 'text-slate-500'}`}
           >
-            <Plus size={15} /> {t("postListing")}
+            <Plus size={14} /> {t("postListing")}
+          </button>
+          <button
+            onClick={() => setActiveTab("deliveries")}
+            className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2 ${activeTab === 'deliveries' ? 'bg-teal-500 text-white shadow-lg' : 'text-slate-500'}`}
+          >
+            <Package size={14} /> {t("viewDeliveries") || "Deliveries"}
           </button>
         </div>
       </div>
@@ -373,7 +471,7 @@ const FishMarket = () => {
                           </div>
 
                           {/* Action buttons */}
-                          <div className="flex gap-2 flex-shrink-0">
+                          <div className="flex flex-wrap gap-2 flex-shrink-0">
                             <button
                               onClick={() => handleWhatsApp(item.sellerPhone, item.species, item.price, item.quantity)}
                               className="flex items-center gap-2 px-4 py-2.5 bg-green-500/10 text-green-400 rounded-xl text-[10px] font-black uppercase tracking-widest border border-green-500/20 hover:bg-green-500/20 transition-all active:scale-95"
@@ -382,9 +480,15 @@ const FishMarket = () => {
                             </button>
                             <button
                               onClick={() => handleCall(item.sellerPhone, item.species)}
-                              className="flex items-center gap-2 px-4 py-2.5 bg-teal-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-teal-500/20 hover:bg-teal-400 transition-all active:scale-95"
+                              className="flex items-center gap-2 px-4 py-2.5 bg-blue-500/10 text-blue-400 rounded-xl text-[10px] font-black uppercase tracking-widest border border-blue-500/20 hover:bg-blue-500/20 transition-all active:scale-95"
                             >
                               <Phone size={14} strokeWidth={2.5} /> Call
+                            </button>
+                            <button
+                              onClick={() => handleDeliveryRequest(item)}
+                              className="flex items-center gap-2 px-5 py-2.5 bg-teal-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-teal-500/20 hover:bg-teal-400 transition-all active:scale-95"
+                            >
+                              <Zap size={14} strokeWidth={2.5} /> {t("requestDelivery") || "Request Delivery"}
                             </button>
                           </div>
                         </div>
@@ -571,6 +675,81 @@ const FishMarket = () => {
               </div>
             </motion.div>
           )}
+
+          {/* ══════════════ DELIVERIES TAB ══════════════ */}
+          {activeTab === "deliveries" && (
+            <motion.div key="deliveries" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="space-y-4 pb-6">
+               <div className="bg-teal-500/10 p-4 rounded-2xl border border-teal-500/20 mb-2">
+                 <p className="text-[11px] font-black text-teal-400 uppercase tracking-widest leading-none mb-1 text-center">{t("deliverySupport")}</p>
+                 <p className="text-[9px] text-teal-600 text-center">{t("deliveryDesc")}</p>
+               </div>
+
+               {deliveries.length === 0 ? (
+                 <div className="text-center py-20 glass-dark rounded-3xl border border-white/5">
+                   <Package size={40} className="mx-auto mb-4 text-slate-700" />
+                   <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">No active deliveries</p>
+                 </div>
+               ) : (
+                 deliveries.map((req) => (
+                   <div key={req.id} className="bg-slate-900 rounded-3xl p-5 border border-white/10 shadow-lg">
+                     <div className="flex justify-between items-start mb-4">
+                       <div>
+                         <p className="text-[10px] font-black text-teal-400 uppercase tracking-[0.2em] mb-1">REQ #{req.id.split('-')[0].toUpperCase()}</p>
+                         <h3 className="text-white font-black text-lg">{req.species}</h3>
+                       </div>
+                       <div className="flex flex-col items-end">
+                         <div className="px-2 py-1 bg-yellow-500/10 text-yellow-400 rounded-lg text-[9px] font-black uppercase tracking-widest border border-yellow-500/20">
+                           {req.status}
+                         </div>
+                         <p className="text-[9px] text-slate-500 font-bold mt-1">{formatDistanceToNow(req.timestamp)} ago</p>
+                       </div>
+                     </div>
+
+                     <div className="grid grid-cols-2 gap-3 mb-4">
+                        <div className="bg-white/5 p-3 rounded-2xl border border-white/5">
+                          <p className="text-[8px] font-black text-slate-600 uppercase mb-1">Distance Charge</p>
+                          <p className="text-sm font-black text-white">₹{req.deliveryFee}</p>
+                          <p className="text-[8px] text-slate-500 font-bold uppercase">~{req.distance} km</p>
+                        </div>
+                        <div className="bg-teal-500/5 p-3 rounded-2xl border border-teal-500/10">
+                          <p className="text-[8px] font-black text-teal-600 uppercase mb-1">Order Total</p>
+                          <p className="text-sm font-black text-teal-400">₹{req.totalPrice}</p>
+                          <p className="text-[8px] text-teal-600/50 font-bold uppercase">{req.quantity}kg inclusive</p>
+                        </div>
+                     </div>
+                     
+                     <div className="grid grid-cols-3 gap-2 mt-4">
+                        <button 
+                          onClick={() => copyDeliveryDetails(req)}
+                          className="py-3 bg-white/5 text-white/70 rounded-xl text-[10px] font-black uppercase tracking-widest border border-white/10 flex items-center justify-center gap-2 hover:bg-white/10 transition-all active:scale-95"
+                        >
+                          <ClipboardCheck size={14} /> Copy
+                        </button>
+                        <button 
+                          onClick={() => {
+                            const msg = encodeURIComponent(`Inquiry for Delivery #${req.id.split('-')[0].toUpperCase()}\nItem: ${req.species}\nStatus: ${req.status}`);
+                            window.location.href = `sms:+919019807085?&body=${msg}`;
+                            toast.info("Opening SMS app...");
+                          }}
+                          className="py-3 bg-teal-500/10 text-teal-400 rounded-xl text-[10px] font-black uppercase tracking-widest border border-teal-500/20 flex items-center justify-center gap-2 hover:bg-teal-500/20 transition-all active:scale-95"
+                        >
+                          <MessageCircle size={14} /> SMS
+                        </button>
+                        <button 
+                          onClick={() => {
+                            const msg = encodeURIComponent(`Mitra Delivery Request: #${req.id.split('-')[0].toUpperCase()}\nItem: ${req.species}\nStatus: ${req.status}`);
+                            window.open(`https://wa.me/919019807085?text=${msg}`, "_blank");
+                          }}
+                          className="py-3 bg-green-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-green-500/20 flex items-center justify-center gap-2 hover:bg-green-400 transition-all active:scale-95"
+                        >
+                          <MessageSquarePlus size={14} /> WhatsApp
+                        </button>
+                     </div>
+                    </div>
+                  ))
+                )}
+             </motion.div>
+           )}
 
         </AnimatePresence>
       </div>

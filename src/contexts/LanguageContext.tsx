@@ -196,6 +196,16 @@ const translations: Record<string, Record<Language, string>> = {
   noListings:         { en: "No listings found",           kn: "ಯಾವುದೇ ಪಟ್ಟಿಗಳು ಕಂಡುಬಂದಿಲ್ಲ",       hi: "कोई लिस्टिंग नहीं मिली" },
   beTheFirst:         { en: "Be the first to post a listing!", kn: "ಪಟ್ಟಿ ಮಾಡುವಲ್ಲಿ ಮೊದಲಿಗರಾಗಿರಿ!",   hi: "लिस्टिंग पोस्ट करने वाले पहले व्यक्ति बनें!" },
   tradeHub:           { en: "Live Trade Hub",              kn: "ಲೈವ್ ಟ್ರೇಡ್ ಹಬ್",                hi: "लाइव ट्रेड हब" },
+  requestDelivery:    { en: "Request Delivery",            kn: "ಡೆಲಿವರಿ ವಿನಂತಿಸಿ",                 hi: "डिलीवरी का अनुरोध करें" },
+  deliveryFee:        { en: "Delivery Fee",                kn: "ಡೆಲಿವರಿ ಶುಲ್ಕ",                    hi: "डिलीवरी शुल्क" },
+  deliverySupport:    { en: "Mitra Logistics Support",     kn: "ಮಿತ್ರ ಲಾಜಿಸ್ಟಿಕ್ಸ್ ಬೆಂಬಲ",            hi: "मित्रा लॉजिस्टिक्स सहायता" },
+  deliveryDesc:       { en: "Get fresh fish delivered at ₹10/km.", kn: "ತಾಜಾ ಮೀನು ₹10/ಕಿಮೀ ದರದಲ್ಲಿ ಪಡೆಯಿರಿ.", hi: "₹10/किमी पर ताजी मछली प्राप्त करें।" },
+  confirmDelivery:    { en: "Confirm Delivery",            kn: "ಡೆಲಿವರಿ ಖಚಿತಪಡಿಸಿ",               hi: "डिलीवरी की पुष्टि करें" },
+  orderTotal:         { en: "Order Total",                 kn: "ಒಟ್ಟು ಮೊತ್ತ",                      hi: "कुल ऑर्डर" },
+  distCharge:         { en: "Distance Charge",             kn: "ದೂರದ ಶುಲ್ಕ",                      hi: "दूरी शुल्क" },
+  minOrder:           { en: "Min Order: 2kg",              kn: "ಕನಿಷ್ಠ ಆರ್ಡರ್: 2 ಕೆಜಿ",             hi: "न्यूनतम ऑर्डर: 2 किलो" },
+  logisticMsg:        { en: "Your delivery request sent to Mitra Logistics!", kn: "ನಿಮ್ಮ ಡೆಲಿವರಿ ವಿನಂತಿಯನ್ನು ಮಿತ್ರ ಲಾಜಿಸ್ಟಿಕ್ಸ್ಗೆ ಕಳುಹಿಸಲಾಗಿದೆ!", hi: "आपका डिलीवरी अनुरोध मित्रा लॉजिस्टिक्स को भेज दिया गया है!" },
+  viewDeliveries:     { en: "My Deliveries",               kn: "ನನ್ನ ಡೆಲಿವರಿಗಳು",                  hi: "मेरी डिलीवरी" },
 
   // PFZ / Fish Detection
   pfzFinder:          { en: "PFZ Finder",                  kn: "ಮೀನುಗಾರಿಕೆ ವಲಯ ಪತ್ತೆ",           hi: "PFZ खोजक" },
